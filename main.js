@@ -74,6 +74,8 @@ let isForGreen;
 let isForBlue;
 let isForYellow;
 
+let copyrightTextStyle;
+let copyrightText;
 
 let wellcomeTextStyle;
 let welcomeText;
@@ -469,7 +471,7 @@ const createBackground = function () {
 }
 
 function createPlayablePart() {
-    console.log("You are playing Recycling In The Forest, enjoy your stay!");
+    console.log("You are playing Recycling In The Forest, enjoy your stay!\n© Genadi Fidanov, gf32716973@edu.mon.bg");
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
     game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
@@ -699,8 +701,13 @@ function draggingItemCreate() {
 function createWelText() {
     wellcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold' }; //? стила на текста
     welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", wellcomeTextStyle); //? тук добавяме текст в заглавното меню
-    welcomeText.anchor.setTo(0.5)
-    welcomeText.align = 'center'
+    welcomeText.anchor.setTo(0.5);
+    welcomeText.align = 'center';
+
+    copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
+    copyrightText = game.add.text(18, 541, "© Genadi Fidanov, gf32716973@edu.mon.bg", copyrightTextStyle); //? тук добавяме текст в заглавното меню
+    // copyrightText.anchor.setTo(0.5);
+    // copyrightText.align = 'center';
 
     let grd = welcomeText.context.createLinearGradient(0, 0, 0, welcomeText.height);
     //?  Add in 2 color stops
