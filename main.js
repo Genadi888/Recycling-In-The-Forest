@@ -1,5 +1,12 @@
 'use strict'
 
+/* 
+    * © Genadi Fidanov, gf32716973@edu.mon.bg
+    * All rights reserved.
+*/
+
+console.log("You are playing Recycling In The Forest, enjoy your stay!\n© Genadi Fidanov, gf32716973@edu.mon.bg");
+
 let map;
 
 let dude;
@@ -77,6 +84,12 @@ let isForYellow;
 let copyrightTextStyle;
 let copyrightText;
 
+/* 
+    TODO: Да направя бутон за връщане към началното меню след окончателния край на играта.
+    TODO: Може да направя вялящ ефект с рециклирани предмети върху крайния екран.
+
+*/
+
 let wellcomeTextStyle;
 let welcomeText;
 
@@ -94,7 +107,7 @@ let recycleLogo2Xpos = recycleLogoXpos + 200;
 
 let gameHasStarted = false;
 
-let helpText = "Instructions on how to play:\n Controls:\n Use the arrow/WASD keys to move the players.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 mins. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time ends a dialog box comes down\n and each player will have to complete a recycling process.\n\nPress ESC to go back to the main menu.";
+let helpText = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nPress ESC to go back to the welcome screen.";
 let inHelpScene = false;
 
 let dialogBox;
@@ -471,7 +484,6 @@ const createBackground = function () {
 }
 
 function createPlayablePart() {
-    console.log("You are playing Recycling In The Forest, enjoy your stay!\n© Genadi Fidanov, gf32716973@edu.mon.bg");
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
     game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
@@ -591,7 +603,7 @@ function draggingAndDroppingItem() {
             break;
         default:
             if (!P1FinsishedProcess) {
-                dialogBoxText.setText("Congrats! You did a great recycling job!\nNow its your opponent's turn.");
+                dialogBoxText.setText("Congrats! You did a great recycling job!\nNow it's your opponent's turn.");
                 draggingItem.kill();
                 draggingIsDone = true;
                 draggingItemIndex = 0;
@@ -600,13 +612,16 @@ function draggingAndDroppingItem() {
             } else {
                 if (dudeKgs > dude2Kgs) {
                     dialogBoxText.y += 60;
-                    dialogBoxText.setText(`Game Over\n\nPlayer 1 collected ${(dudeKgs - dude2Kgs).toFixed(1)}kg.\ntrash more than Player 2.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.`);
+                    dialogBoxText.setText(`Game Over\n\nPlayer 1 collected ${(dudeKgs - dude2Kgs).toFixed(1)}kg.\ntrash more than Player 2.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
+                    gameEnded = true;
                 } else if (dudeKgs < dude2Kgs) {
                     dialogBoxText.y += 60;
-                    dialogBoxText.setText(`Game Over\n\nPlayer 2 collected ${(dude2Kgs - dudeKgs).toFixed(1)}kg.\ntrash more than Player 1.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.`);
+                    dialogBoxText.setText(`Game Over\n\nPlayer 2 collected ${(dude2Kgs - dudeKgs).toFixed(1)}kg.\ntrash more than Player 1.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
+                    gameEnded = true;
                 } else {
                     dialogBoxText.y += 60;
-                    dialogBoxText.setText(`Game Over\n\nThe two players collected\neuqal amounts of trash.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.`);
+                    dialogBoxText.setText(`Game Over\n\nThe two players collected\nequal amounts of trash.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
+                    gameEnded = true;
                 }
 
                 draggingItem.kill();
@@ -683,9 +698,10 @@ function dialogWindow() {
 }
 
 function dialogWindowText() {
-    dialogBoxTextStyle = { font: "26px Tahoma ", fill: "#ffffff" }; //? стила на текста
-    dialogBoxText = game.add.text(game.width / 2, 150, defWindowText, dialogBoxTextStyle); //? тук добавяме текст в заглавното меню
-    dialogBoxText.anchor.setTo(0.5)
+    dialogBoxTextStyle = { font: "24px Tahoma ", fill: "#ffffff" }; //? стила на текста
+    dialogBoxText = game.add.text(game.width / 2, 168, defWindowText, dialogBoxTextStyle); //? тук добавяме текст в заглавното меню
+    dialogBoxText.anchor.setTo(0.5);
+    dialogBoxText.align = 'center';
     dialogBoxText.alpha = 0;
     game.add.tween(dialogBoxText).to({ alpha: 1 }, 0, "Linear", true, 0);
 }
@@ -722,6 +738,19 @@ function welcomeScreen() {
     game.scale.pageAlignHorizontally = true;  // тук подравняваме играта в центъра на страницата
     game.scale.pageAlignVertically = true;
 
+    gameHasFinished = false;
+    gameHasStarted = false;
+    P1FinsishedProcess = false;
+    gameHasCreatedEverything = false;
+    gameEnded = false;
+    playtimeTimerEnded = false;
+    dudeKgs = 0;
+    dude2Kgs = 0;
+    timeElapsed = 0;
+    windowFinishedTravelling = false;
+    dialogBoxCreated = false;
+    randomItemIndex = 0;
+
     menuBackground = game.add.image(0, 0, 'menu_background');
 
     createWelText();
@@ -747,6 +776,9 @@ function welcomeScreen() {
 
     helpButton.onInputOver.add(helpButtonOver, this);
     helpButton.onInputOut.add(helpButtonOut, this);
+
+    keyESC = game.input.keyboard.addKey(Phaser.Keyboard.ESC);
+    keyESC.onDown.add(escButtonEvent)
 }
 
 function volButtonOver() {
@@ -788,7 +820,7 @@ function helpButtonOut() {
 
 function startButtonEvent() {
     gameHasStarted = true;
-
+    copyrightText.kill();
     recycleLogo.kill();
     recycleLogo2.kill();
     menuBackground.kill()
@@ -812,17 +844,17 @@ function helpButtonEvent() {
     // welcomeText.y = 20;
     startButton.pendingDestroy = true; //? тук премахваме бутона
     helpButton.pendingDestroy = true;
-
-    keyESC = game.input.keyboard.addKey(Phaser.Keyboard.ESC);
-    //keyESC.onPressCallback()
-    keyESC.onDown.add(escButtonEvent)
-
 }
 
+let gameEnded = false;
+
 function escButtonEvent() {
-    if (inHelpScene) {
+    if (inHelpScene || gameEnded) {
+        gameHasStarted = false;
+        console.log("ESC pressed");
         welcomeScreen();
         inHelpScene = false;
+        gameEnded = false;
     }
 }
 
