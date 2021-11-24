@@ -157,7 +157,7 @@ function preload() {
     game.load.image('recycle_logo', './images/recycle_logo.png');
     game.load.image('dialog_box', './images/dialog_box.png');
     game.load.audio('pickup_sound', './audio/pickup sound.wav');
-    game.load.audio('powUp_sound', './audio/smb_powerup.wav');
+    game.load.audio('powUp_sound', './audio/jump_10.wav');
     game.load.audio('plant_music', './audio/plant music.mp3');
 }
 
@@ -721,7 +721,7 @@ function createWelText() {
     welcomeText.align = 'center';
 
     copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
-    copyrightText = game.add.text(18, 541, "© Genadi Fidanov, gf32716973@edu.mon.bg", copyrightTextStyle); //? тук добавяме текст в заглавното меню
+    copyrightText = game.add.text(18, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg                                     Recycle items art by Clint Bellanger, "mushroom" sf by "dklon".`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
     // copyrightText.anchor.setTo(0.5);
     // copyrightText.align = 'center';
 
