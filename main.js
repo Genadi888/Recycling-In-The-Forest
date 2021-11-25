@@ -90,7 +90,7 @@ let copyrightText;
 
 */
 
-let wellcomeTextStyle;
+let welcomeTextStyle;
 let welcomeText;
 
 let startButton;
@@ -123,10 +123,10 @@ let dialogBoxTextStyle;
 let defWindowText = "Drag the item into a container.";
 
 let dragItemBinTypeArray = ['isForBlue', 'isForGreen', 'isForYellow', 'isForBlue', 'other', 'isForGreen', 'isForGreen', 'isForBlue', 'isForBlue', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow'];
-let draggingItemIndex = 0;
+let draggingItemIndex = 16;
 
 let draggingIsDone = false; //? един местещ опит е завършен
-let P1FinsishedProcess = false; //? първият играч е завършил разделното събиране
+let P1FinishedProcess = true; //? първият играч е завършил разделното събиране
 
 let clickedOnCenter = false; //? този boolean разрешава местенето на предмета само ако първонач. се е кликнало върху него
 
@@ -149,6 +149,7 @@ function preload() {
     game.load.spritesheet('volume_icon', './images/volume_sprite.png', 690 / 2, 286 / 1);
     game.load.spritesheet('recycle_items', './images/recycle_items_spritesheet.png', 1024 / 16, 64 / 1);
     game.load.spritesheet('menu_buttons_sprite_key', './images/menu_buttons_sprite.png', 800 / 2, 200 / 1);
+    game.load.spritesheet('recycled_items', './images/household_items_sprite.png', 960 / 10, 96 / 1);
     game.load.spritesheet('bins', './images/bins_sprite.png', 96 / 3, 32 / 1);
     game.load.image('block', './images/improved_bar.png');
     game.load.image('tileset', './images/32x32_tileset_terrains_shops.png');
@@ -165,7 +166,18 @@ function create() {
     welcomeScreen(); //? създаваме първоначалното меню
 }
 
+let recycledItemsFrame = 0;
+
 function update() {
+
+    if (recycledItemsFrame >= 10) {
+        clearInterval(recycledItemCreateInterval);
+    }
+
+    if (gameEnded) {
+        game.physics.arcade.collide(recycledItemsGroup, recycledItemsGroup);
+    }
+
     if (canClick && !draggingIsDone) {
         draggingAndDroppingItem();
     }
@@ -521,7 +533,7 @@ function createPlayablePart() {
     volButton.onInputOut.add(volButtonOut, this);
 
     startTime = new Date();
-    totalTime = 180; //? секундите за таймера
+    totalTime = 0; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
@@ -588,6 +600,114 @@ function createPlaytimeTimer() {
     timeLabel.align = 'center';
 }
 
+let recycledItemsGroup;
+let recycledItemCreateInterval;
+let recycledItemCollideInterval;
+
+
+function recycledItemsFalling() {
+    // recycledItemsGroup = game.add.group();
+    // recycledItemsGroup.enableBody = true;
+    // recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
+
+    // let recycledItemsFrame = 0;
+    // for (let i = 200; i <= 400; i += 100) {
+    //     recycledItemsGroup.create(i, 10, 'recycled_items', recycledItemsFrame);
+    //     recycledItemsFrame++;
+    // }
+
+    // game.physics.arcade.gravity.y = 100;
+    // dude.body.moves = false;
+    // dude2.body.moves = false;
+    // game.physics.arcade.enable(recycledItemsGroup);
+    // // recycledItemsGroup.collideWorldBounds = true;
+    // // recycledItemsGroup.enableBody = true;
+    // recycledItemsGroup.collideWorldBounds = true;
+    // recycledItemsGroup.gravity.x = game.rnd.integerInRange(-50, 50);
+    // recycledItemsGroup.gravity.y = 100 + Math.random() * 100;
+    // recycledItemsGroup.bounce.setTo(0.9, 0.9);
+
+
+    recycledItemsGroup = game.add.group();
+    recycledItemsGroup.enableBody = true;
+    recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
+
+    let recycledItem;
+    // for (let i = 0; i < 10; i++) {
+    //     recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
+    //     // setTimeout(() => { recycledItem.body.collideWorldBounds = true; }, 0);
+    //     recycledItem.scale.setTo(0.8);
+
+    //     //This allows your sprite to collide with the world bounds like they were rigid objects
+    //     // recycledItem.body.collideWorldBounds = true;
+    //     // recycledItem.body.gravity.x = game.rnd.integerInRange(-5, 5);
+    //     // recycledItem.onEnterBounds(recycledItem.body.collideWorldBounds = true);
+        
+    //     recycledItemsFrame++;
+    // }
+    
+    // for (let i = 0; i < 10; i++) {
+    //     recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
+
+    //     recycledItem.body.gravity.y = 100 + Math.random() * 100;
+    //     recycledItem.body.bounce.setTo(0, 0.5);
+    //     recycledItem.checkWorldBounds = true;
+    //     recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
+    // }
+
+    let i = 0;
+    recycledItemCreateInterval = setInterval(() => { 
+        recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
+        recycledItem.body.gravity.y = 400;
+        recycledItem.body.bounce.setTo(0, 0.5);
+        // recycledItem.checkWorldBounds = true;
+        // recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
+        recycledItem.scale.setTo(0.8);
+
+        
+
+        recycledItemsFrame++;
+        i++;
+    }, 1000);
+    
+    setInterval(() => {
+        //recycledItem.checkWorldBounds = true;
+        //recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
+        // recycledItem.body.collideWorldBounds = true;
+        // console.log("now colliding")
+    }, 2000);
+
+    recycledItemCollideInterval = setInterval(() => {
+        if (recycledItem.y > 20) {
+            // recycledItem.body.gravity.y = 100;
+
+            if (recycledItemsFrame >= 10) {
+                clearInterval(recycledItemCollideInterval);
+            }
+
+            recycledItem.body.collideWorldBounds = true;
+            console.log("now item should collide")
+        }
+    }, 100);
+
+    function recycledItemsNowCollide() {
+        recycledItem.body.collideWorldBounds = true;
+    }
+
+
+
+    // let mask = game.add.graphics(0, 100);
+
+    // mask.drawRect(200, 10, 300, 350);
+    // mask.drawRect(330, 0, 140, 200);
+    // mask.drawRect(530, 0, 140, 200);
+
+    //  And apply it to the Group itself
+    // recycledItemsGroup.mask = mask;
+
+
+}
+
 function draggingAndDroppingItem() {
     let dragItemBinType = dragItemBinTypeArray[draggingItemIndex]; //? тук взимаме типа на отпадъка (за кой контейнер е) 
 
@@ -602,26 +722,29 @@ function draggingAndDroppingItem() {
             draggingIsDone = false;
             break;
         default:
-            if (!P1FinsishedProcess) {
+            if (!P1FinishedProcess) {
                 dialogBoxText.setText("Congrats! You did a great recycling job!\nNow it's your opponent's turn.");
                 draggingItem.kill();
                 draggingIsDone = true;
                 draggingItemIndex = 0;
-                P1FinsishedProcess = true;
+                P1FinishedProcess = true;
                 setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет 
             } else {
                 if (dudeKgs > dude2Kgs) {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nPlayer 1 collected ${(dudeKgs - dude2Kgs).toFixed(1)}kg.\ntrash more than Player 2.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    recycledItemsFalling();
                 } else if (dudeKgs < dude2Kgs) {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nPlayer 2 collected ${(dude2Kgs - dudeKgs).toFixed(1)}kg.\ntrash more than Player 1.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    recycledItemsFalling();
                 } else {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nThe two players collected\nequal amounts of trash.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    recycledItemsFalling();
                 }
 
                 draggingItem.kill();
@@ -715,8 +838,8 @@ function draggingItemCreate() {
 }
 
 function createWelText() {
-    wellcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold' }; //? стила на текста
-    welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", wellcomeTextStyle); //? тук добавяме текст в заглавното меню
+    welcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold' }; //? стила на текста
+    welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", welcomeTextStyle); //? тук добавяме текст в заглавното меню
     welcomeText.anchor.setTo(0.5);
     welcomeText.align = 'center';
 
@@ -740,7 +863,7 @@ function welcomeScreen() {
 
     gameHasFinished = false;
     gameHasStarted = false;
-    P1FinsishedProcess = false;
+    P1FinishedProcess = true;
     gameHasCreatedEverything = false;
     gameEnded = false;
     playtimeTimerEnded = false;
@@ -835,10 +958,10 @@ function helpButtonEvent() {
     // menuBackground.kill();
     // welcomeText.kill();
     welcomeText.kill();
-    wellcomeTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold' };
-    welcomeText = game.add.text(game.width / 2, 200, helpText, wellcomeTextStyle);
+    welcomeTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold' };
+    welcomeText = game.add.text(game.width / 2, 200, helpText, welcomeTextStyle);
     welcomeText.align = 'center';
-    // welcomeText = game.add.text(25, 25, "So you want to learn how to play?", wellcomeTextStyle);
+    // welcomeText = game.add.text(25, 25, "So you want to learn how to play?", welcomeTextStyle);
     welcomeText.anchor.setTo(0.5);
     // welcomeText.x = 25;
     // welcomeText.y = 20;
