@@ -40,14 +40,18 @@ let dude2PickupSound;
 let music1;
 let music2;
 let winSound;
-let melody;
 let powup;
+let congratsMelody;
+let calmMusic;
+let calmMusicIsPlaying = false;
 
 let statusbar;
 let counterS = 0;
 let timer;
 let sign_timer;
 let mushroom;
+
+let bg;
 
 const game = new Phaser.Game(
     832,
@@ -119,18 +123,23 @@ let bins;
 let draggingItem;
 let dialogBoxText;
 let dialogBoxTextStyle;
+let congratsText;
+let congratsTextStyle;
+let creditsText;
+let creditsTextStyle;
 
 let defWindowText = "Drag the item into a container.";
 
 let dragItemBinTypeArray = ['isForBlue', 'isForGreen', 'isForYellow', 'isForBlue', 'other', 'isForGreen', 'isForGreen', 'isForBlue', 'isForBlue', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow'];
-let draggingItemIndex = 16;
+let draggingItemIndex = 0;
 
 let draggingIsDone = false; //? един местещ опит е завършен
-let P1FinishedProcess = true; //? първият играч е завършил разделното събиране
+let P1FinishedProcess = false; //? първият играч е завършил разделното събиране
 
 let clickedOnCenter = false; //? този boolean разрешава местенето на предмета само ако първонач. се е кликнало върху него
 
 let gameHasCreatedEverything = false;
+let gameEnded = false;
 
 let startTime;
 let totalTime;
@@ -157,9 +166,11 @@ function preload() {
     game.load.image('menu_background', './images/menu_background.png');
     game.load.image('recycle_logo', './images/recycle_logo.png');
     game.load.image('dialog_box', './images/dialog_box.png');
-    game.load.audio('pickup_sound', './audio/pickup sound.wav');
-    game.load.audio('powUp_sound', './audio/jump_10.wav');
-    game.load.audio('plant_music', './audio/plant music.mp3');
+    game.load.audio('pickup_sound', './audio/pickup_sound.wav');
+    game.load.audio('powUp_sound', './audio/powup_sound.wav');
+    game.load.audio('plant_music', './audio/plant_music.mp3');
+    game.load.audio('congrats_melody', './audio/congrats_melody.ogg');
+    game.load.audio('calm_music', './audio/calm_music.mp3');
 }
 
 function create() {
@@ -170,15 +181,15 @@ let recycledItemsFrame = 0;
 
 function update() {
 
-    if (recycledItemsFrame >= 10) {
+    if (recycledItemsFrame >= 10) { //? ако всички рециклирани предмети в спрайта са се изредили, не създавай повече предмети
         clearInterval(recycledItemCreateInterval);
     }
 
-    if (gameEnded) {
+    if (gameEnded) { //? тук рециклираните отпадъци може да се блъскат взаимно
         game.physics.arcade.collide(recycledItemsGroup, recycledItemsGroup);
     }
 
-    if (canClick && !draggingIsDone) {
+    if (canClick && !draggingIsDone) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
         draggingAndDroppingItem();
     }
 
@@ -204,11 +215,10 @@ function update() {
         game.physics.arcade.collide(dude, mushroom, collisionHandler1, null, this);
         game.physics.arcade.collide(dude2, mushroom, collisionHandler2, null, this);
 
-        if (timeElapsed >= totalTime && !windowFinishedTravelling) {
+        if (timeElapsed >= totalTime && !windowFinishedTravelling) { //? ако времето на главния таймер е изтекло, зануляваме текста и преминаваме към следващата фаза на играта
             text3.setText("00:00")
             playtimeTimerEnded = true;
             dialogWindow();
-            // gameTimer.stop()
         }
 
         if (game.physics.arcade.collide(dude, groundLayer) == true) {
@@ -290,7 +300,7 @@ function update() {
 }
 
 const createMap = function () {
-    const map = game.add.tilemap('tilemap') //създаваме я като променлива, името го взимаме от load
+    map = game.add.tilemap('tilemap') //създаваме я като променлива, името го взимаме от load
     map.addTilesetImage('shop_stuff', 'tileset') //първото е името на tileset-а (намира се в .json файла), второто ключа на image.png
     groundLayer = map.createLayer(0);
     map.createLayer('\u0421\u043b\u043e\u0439 \u0441 \u043f\u043b\u043e\u0447\u043a\u0438 1') //кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
@@ -419,7 +429,7 @@ const mushroomsKill = function () {
     mush_timer_destroy.destroy();
 }
 
-const mush1 = function () {
+const mush1 = function () { //? една от възможните позиции на гъбката
     mushroom.x = 116;
     mushroom.y = 162;
     mush_timer_destroy = game.time.create(false);
@@ -490,7 +500,7 @@ const createStatusBar = function () {
 }
 
 const createBackground = function () {
-    let bg = game.add.image(0, 0, 'grass');
+    bg = game.add.image(0, 0, 'grass');
     bg.width = game.width;
     bg.height = game.height;
 }
@@ -509,14 +519,9 @@ function createPlayablePart() {
     mushAssign();       //? създаваме гъбката
     createStatusBar();
     createText();
+    createAudio();
 
     game.time.advancedTiming = true;
-
-    dudePickupSound = game.add.audio('pickup_sound');   //? добавяме звуковите ефекти 
-    dude2PickupSound = game.add.audio('pickup_sound');
-    music1 = game.add.audio('plant_music');
-    music1.play();
-    powup = game.add.audio('powUp_sound');
 
     mush_timer_spawn = game.time.create(false);
     mush_timer_spawn.loop(26000, mushroomCreate, this);
@@ -533,7 +538,7 @@ function createPlayablePart() {
     volButton.onInputOut.add(volButtonOut, this);
 
     startTime = new Date();
-    totalTime = 0; //? секундите за таймера
+    totalTime = 180; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
@@ -557,10 +562,8 @@ function createDialogBoxPart() {
             bins = game.add.sprite(i, 410, 'bins');
             bins.anchor.setTo(0.5);
             bins.scale.setTo(2);
-
             bins.alpha = 0;
             game.add.tween(bins).to({ alpha: 1 }, 0, "Linear", true, 0);
-
             bins.frame = index++;
         }
 
@@ -577,19 +580,21 @@ function createDialogBoxPart() {
 
 function updatePlaytimeTimer() {
     let currentTime = new Date();
+
     let timeDifference = startTime.getTime() - currentTime.getTime();
-    //Time elapsed in seconds
+    //? Изминалото време в секунди
     timeElapsed = Math.abs(timeDifference / 1000);
-    //Time remaining in seconds
+    //? Оставащато време в секунди
     let timeRemaining = totalTime - timeElapsed;
-    //Convert seconds into minutes and seconds
+    //? Конвертираме секундите в минути
     let minutes = Math.floor(timeRemaining / 60);
     let seconds = Math.floor(timeRemaining) - (60 * minutes);
-    //Display minutes, add a 0 to the start if less than 10
+    //? При визуализация на минутите, ако са по малки от 10 - добаяме "0" пред тях
     let result = (minutes < 10) ? "0" + minutes : minutes;
-    //Display seconds, add a 0 to the start if less than 10
+    //? При визуализация на секундите, ако са по малки от 10 - добаяме "0" пред тях
     result += (seconds < 10) ? ":0" + seconds : ":" + seconds;
-    if (!playtimeTimerEnded) {
+
+    if (!playtimeTimerEnded) { //? ако този таймер не е изтекъл, да се актуализира текстът
         timeLabel.text = result;
     }
 }
@@ -604,111 +609,61 @@ let recycledItemsGroup;
 let recycledItemCreateInterval;
 let recycledItemCollideInterval;
 
-
-function recycledItemsFalling() {
-    // recycledItemsGroup = game.add.group();
-    // recycledItemsGroup.enableBody = true;
-    // recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
-
-    // let recycledItemsFrame = 0;
-    // for (let i = 200; i <= 400; i += 100) {
-    //     recycledItemsGroup.create(i, 10, 'recycled_items', recycledItemsFrame);
-    //     recycledItemsFrame++;
-    // }
-
-    // game.physics.arcade.gravity.y = 100;
-    // dude.body.moves = false;
-    // dude2.body.moves = false;
-    // game.physics.arcade.enable(recycledItemsGroup);
-    // // recycledItemsGroup.collideWorldBounds = true;
-    // // recycledItemsGroup.enableBody = true;
-    // recycledItemsGroup.collideWorldBounds = true;
-    // recycledItemsGroup.gravity.x = game.rnd.integerInRange(-50, 50);
-    // recycledItemsGroup.gravity.y = 100 + Math.random() * 100;
-    // recycledItemsGroup.bounce.setTo(0.9, 0.9);
-
-
-    recycledItemsGroup = game.add.group();
-    recycledItemsGroup.enableBody = true;
-    recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
-
-    let recycledItem;
-    // for (let i = 0; i < 10; i++) {
-    //     recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
-    //     // setTimeout(() => { recycledItem.body.collideWorldBounds = true; }, 0);
-    //     recycledItem.scale.setTo(0.8);
-
-    //     //This allows your sprite to collide with the world bounds like they were rigid objects
-    //     // recycledItem.body.collideWorldBounds = true;
-    //     // recycledItem.body.gravity.x = game.rnd.integerInRange(-5, 5);
-    //     // recycledItem.onEnterBounds(recycledItem.body.collideWorldBounds = true);
-        
-    //     recycledItemsFrame++;
-    // }
-    
-    // for (let i = 0; i < 10; i++) {
-    //     recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
-
-    //     recycledItem.body.gravity.y = 100 + Math.random() * 100;
-    //     recycledItem.body.bounce.setTo(0, 0.5);
-    //     recycledItem.checkWorldBounds = true;
-    //     recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
-    // }
-
+function recycledItemIntervalsCreate() {
     let i = 0;
-    recycledItemCreateInterval = setInterval(() => { 
+    recycledItemCreateInterval = setInterval(() => { //? на всяка секунда се създава нов падащ предмет
         recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
         recycledItem.body.gravity.y = 400;
         recycledItem.body.bounce.setTo(0, 0.5);
-        // recycledItem.checkWorldBounds = true;
-        // recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
-        recycledItem.scale.setTo(0.8);
-
-        
-
+        recycledItem.scale.setTo(0.8);      
         recycledItemsFrame++;
         i++;
     }, 1000);
     
-    setInterval(() => {
-        //recycledItem.checkWorldBounds = true;
-        //recycledItem.events.onEnterBounds.add(recycledItemsNowCollide, this);
-        // recycledItem.body.collideWorldBounds = true;
-        // console.log("now colliding")
-    }, 2000);
-
     recycledItemCollideInterval = setInterval(() => {
-        if (recycledItem.y > 20) {
-            // recycledItem.body.gravity.y = 100;
+        if (recycledItem.y > 20) { 
+            recycledItem.body.gravity.y = 200;
 
             if (recycledItemsFrame >= 10) {
-                clearInterval(recycledItemCollideInterval);
+                clearInterval(recycledItemCollideInterval); //? спираме проверката за позиция
             }
 
-            recycledItem.body.collideWorldBounds = true;
-            console.log("now item should collide")
+            recycledItem.body.collideWorldBounds = true; //? разрешаваме сблъсъка на предмета с границите на играта
         }
     }, 100);
+}
+let recycledItem;
 
-    function recycledItemsNowCollide() {
-        recycledItem.body.collideWorldBounds = true;
-    }
+function recycledItemsFalling() {
+    recycledItemsGroup = game.add.group();
+    recycledItemsGroup.enableBody = true;
+    recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
 
+    //? създаваме маска, която ще показва обектите само когато са извън статус полето (при падане)
+    let mask = game.add.graphics(0, 0);
+    mask.width = game.width;
+    mask.height = 35;
 
+    recycledItemIntervalsCreate();
 
-    // let mask = game.add.graphics(0, 100);
+    mask.drawRect(0, 35, game.width, game.height - 35);
 
-    // mask.drawRect(200, 10, 300, 350);
-    // mask.drawRect(330, 0, 140, 200);
-    // mask.drawRect(530, 0, 140, 200);
+    //? ако искаме предметите да не се показат пред диалоговия прозорец
+    //// mask.drawRect(0, 35, game.width / 2 - 250, game.height - 35);
+    //// mask.drawRect(game.width / 2 - 250, 35, 500, game.height / 2 - 223);
+    //// mask.drawRect(game.width / 2 + 250, 35, game.width / 2 - 250, game.height - 35);
+    //// mask.drawRect(game.width / 2 - 250, game.height / 2 + 187, 500, 500);
 
-    //  And apply it to the Group itself
-    // recycledItemsGroup.mask = mask;
-
-
+    //? прилагаме маската към всички елементи на групата
+    recycledItemsGroup.mask = mask;
 }
 
 function draggingAndDroppingItem() {
+    if (draggingItemIndex === 0 && !calmMusicIsPlaying) {
+        calmMusic.play();
+        calmMusicIsPlaying = true;
+    }
+
     let dragItemBinType = dragItemBinTypeArray[draggingItemIndex]; //? тук взимаме типа на отпадъка (за кой контейнер е) 
 
     switch (dragItemBinType) {
@@ -728,23 +683,39 @@ function draggingAndDroppingItem() {
                 draggingIsDone = true;
                 draggingItemIndex = 0;
                 P1FinishedProcess = true;
-                setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет 
+                calmMusic.stop();
+                calmMusicIsPlaying = false;
+                setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3500); //? започва отброяване до появата на следващия предмет 
             } else {
                 if (dudeKgs > dude2Kgs) {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nPlayer 1 collected ${(dudeKgs - dude2Kgs).toFixed(1)}kg.\ntrash more than Player 2.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    createCongratsText();
                     recycledItemsFalling();
-                } else if (dudeKgs < dude2Kgs) {
+                    calmMusic.stop();
+                    calmMusicIsPlaying = true; //? тук попречваме на спокойната мелодийка да се повтори отново
+                    congratsMelody.play();
+                } 
+                else if (dudeKgs < dude2Kgs) {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nPlayer 2 collected ${(dude2Kgs - dudeKgs).toFixed(1)}kg.\ntrash more than Player 1.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    createCongratsText();
                     recycledItemsFalling();
-                } else {
+                    calmMusic.stop();
+                    calmMusicIsPlaying = true;
+                    congratsMelody.play();
+                } 
+                else {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nThe two players collected\nequal amounts of trash.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
                     gameEnded = true;
+                    createCongratsText();
                     recycledItemsFalling();
+                    calmMusic.stop();
+                    calmMusicIsPlaying = true;
+                    congratsMelody.play();
                 }
 
                 draggingItem.kill();
@@ -763,13 +734,13 @@ function draggingAndDroppingItem() {
             clickedOnCenter = false;
             draggingIsDone = true;
             draggingItemIndex++;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         } else {
             dialogBoxText.setText("Try again!");
             draggingItem.kill();
             clickedOnCenter = false;
             draggingIsDone = true;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         }
     }
     else if (dragItemYPosCheck && (draggingItem.x >= 396 && draggingItem.x <= 436)) {
@@ -780,13 +751,13 @@ function draggingAndDroppingItem() {
             clickedOnCenter = false;
             draggingIsDone = true;
             draggingItemIndex++;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         } else {
             dialogBoxText.setText("Try again!");
             draggingItem.kill();
             clickedOnCenter = false;
             draggingIsDone = true;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         }
     }
     else if (dragItemYPosCheck && (draggingItem.x >= 592 && draggingItem.x <= 632)) {
@@ -797,15 +768,21 @@ function draggingAndDroppingItem() {
             clickedOnCenter = false;
             draggingIsDone = true;
             draggingItemIndex++;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         } else {
             dialogBoxText.setText("Try again!");
             draggingItem.kill();
             clickedOnCenter = false;
             draggingIsDone = true;
-            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 3000); //? започва отброяване до появата на следващия предмет
+            setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         }
     }
+}
+
+function createCongratsText () {
+    congratsTextStyle = { font: "16px Tahoma ", fill: "#ED4335", fontWeight: "Italic"};
+    congratsText = game.add.text(game.width / 2, game.height / 2 - 135, "Look at all these recycled objects you have contributed making!", congratsTextStyle);
+    congratsText.anchor.setTo(0.5);
 }
 
 function dialogWindow() {
@@ -837,43 +814,54 @@ function draggingItemCreate() {
     }
 }
 
+let creditsTextContent = `Recycle items art by Clint Bellanger,\n"mushroom" sf by "dklon",\n"calm music" by "Aspecty",\n"pickup sound" by M. Baradari,\ncredit for "recycling music"\ngoes to www.screenhog.com.`;
+
 function createWelText() {
-    welcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold' }; //? стила на текста
+    welcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold', align: 'center' }; //? стила на текста
     welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", welcomeTextStyle); //? тук добавяме текст в заглавното меню
     welcomeText.anchor.setTo(0.5);
-    welcomeText.align = 'center';
 
     copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
-    copyrightText = game.add.text(18, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg                                     Recycle items art by Clint Bellanger, "mushroom" sf by "dklon".`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
-    // copyrightText.anchor.setTo(0.5);
-    // copyrightText.align = 'center';
+    copyrightText = game.add.text(game.width / 2 + 118, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
+    
+    creditsTextStyle = { font: "14px Arial ", fill: "#ED4335", fontWeight: 'Italic', align: 'left'};
+    creditsText = game.add.text(130, 510, creditsTextContent, creditsTextStyle);
+    creditsText.anchor.setTo(0.5);
 
     let grd = welcomeText.context.createLinearGradient(0, 0, 0, welcomeText.height);
-    //?  Add in 2 color stops
+    //?  добавяме два цвята за граница
     grd.addColorStop(0, '#DCE35B');
     grd.addColorStop(1, '#45B649');
-    //?  And apply to the Text
+    //?  и прилагаме градиента към текста
     welcomeText.fill = grd;
     welcomeText.setShadow(-5, 5, 'rgba(0,0,0,0.5)', 0);
 }
 
 function welcomeScreen() {
-    game.scale.pageAlignHorizontally = true;  // тук подравняваме играта в центъра на страницата
+    game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
     game.scale.pageAlignVertically = true;
 
     gameHasFinished = false;
     gameHasStarted = false;
-    P1FinishedProcess = true;
+
+    P1FinishedProcess = false;
+    draggingItemIndex = 0;
+
     gameHasCreatedEverything = false;
     gameEnded = false;
     playtimeTimerEnded = false;
+
     dudeKgs = 0;
     dude2Kgs = 0;
     timeElapsed = 0;
+
     windowFinishedTravelling = false;
     dialogBoxCreated = false;
-    randomItemIndex = 0;
 
+    recycledItemsFrame = 0;
+    clearInterval(recycledItemCreateInterval); //? премахваме двата интервала
+    clearInterval(recycledItemCollideInterval);
+    
     menuBackground = game.add.image(0, 0, 'menu_background');
 
     createWelText();
@@ -944,10 +932,12 @@ function helpButtonOut() {
 function startButtonEvent() {
     gameHasStarted = true;
     copyrightText.kill();
+    creditsText.kill();
     recycleLogo.kill();
     recycleLogo2.kill();
     menuBackground.kill()
     welcomeText.kill();
+
     startButton.pendingDestroy = true; //? тук премахваме бутона
     helpButton.pendingDestroy = true; //? тук премахваме бутона
 }
@@ -955,30 +945,41 @@ function helpButtonEvent() {
     inHelpScene = true;
     recycleLogo.kill();
     recycleLogo2.kill();
-    // menuBackground.kill();
-    // welcomeText.kill();
+    
     welcomeText.kill();
     welcomeTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold' };
     welcomeText = game.add.text(game.width / 2, 200, helpText, welcomeTextStyle);
     welcomeText.align = 'center';
-    // welcomeText = game.add.text(25, 25, "So you want to learn how to play?", welcomeTextStyle);
     welcomeText.anchor.setTo(0.5);
-    // welcomeText.x = 25;
-    // welcomeText.y = 20;
+
     startButton.pendingDestroy = true; //? тук премахваме бутона
     helpButton.pendingDestroy = true;
 }
-
-let gameEnded = false;
 
 function escButtonEvent() {
     if (inHelpScene || gameEnded) {
         gameHasStarted = false;
         console.log("ESC pressed");
         welcomeScreen();
+        escButtonCleanup();
         inHelpScene = false;
         gameEnded = false;
     }
+}
+
+function escButtonCleanup() {
+    bg.kill();
+    dude.kill();
+    dude2.kill();
+    groundLayer.kill();
+    statusbar.kill();
+    dialogBox.kill();
+    text.kill();
+    text2.kill();
+    text3.kill();
+    volButton.kill();
+    congratsText.kill();
+    dialogBoxText.kill();
 }
 
 const volButtonClick = function () {
@@ -1040,4 +1041,14 @@ function clicksHandler() {
         draggingItem.y = game.height / 2;
         draggingItem.x = game.width / 2;
     }
+}
+
+function createAudio() {
+    dudePickupSound = game.add.audio('pickup_sound');   //? добавяме звуковите ефекти и музика
+    dude2PickupSound = game.add.audio('pickup_sound');
+    music1 = game.add.audio('plant_music');
+    music1.play();
+    powup = game.add.audio('powUp_sound');
+    congratsMelody = game.add.audio('congrats_melody');
+    calmMusic = game.add.audio('calm_music');
 }
