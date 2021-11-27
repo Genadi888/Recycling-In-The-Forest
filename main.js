@@ -538,7 +538,7 @@ function createPlayablePart() {
     volButton.onInputOut.add(volButtonOut, this);
 
     startTime = new Date();
-    totalTime = 0; //? секундите за таймера
+    totalTime = 180; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
