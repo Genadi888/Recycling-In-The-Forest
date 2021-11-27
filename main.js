@@ -182,7 +182,7 @@ let recycledItemsFrame = 0;
 function update() {
 
     if (recycledItemsFrame >= 10) { //? ако всички рециклирани предмети в спрайта са се изредили, не създавай повече предмети
-        clearInterval(recycledItemCreateInterval);
+        recycledItemCreateInterval.stop();
     }
 
     if (gameEnded) { //? тук рециклираните отпадъци може да се блъскат взаимно
@@ -538,7 +538,7 @@ function createPlayablePart() {
     volButton.onInputOut.add(volButtonOut, this);
 
     startTime = new Date();
-    totalTime = 180; //? секундите за таймера
+    totalTime = 0; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
@@ -608,31 +608,43 @@ function createPlaytimeTimer() {
 let recycledItemsGroup;
 let recycledItemCreateInterval;
 let recycledItemCollideInterval;
+let i = 0;
+let recycledItem;
+let recycledItemWasCreated = false;
 
-function recycledItemIntervalsCreate() {
-    let i = 0;
-    recycledItemCreateInterval = setInterval(() => { //? на всяка секунда се създава нов падащ предмет
-        recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
-        recycledItem.body.gravity.y = 400;
-        recycledItem.body.bounce.setTo(0, 0.5);
-        recycledItem.scale.setTo(0.8);      
-        recycledItemsFrame++;
-        i++;
-    }, 1000);
-    
-    recycledItemCollideInterval = setInterval(() => {
+function recycledCreateFunction () {
+    recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
+    recycledItem.body.gravity.y = 400;
+    recycledItem.body.bounce.setTo(0, 0.5);
+    recycledItem.scale.setTo(0.8);      
+    recycledItemsFrame++;
+    i++;
+    recycledItemWasCreated = true;
+}
+function recycledCollideFunction () {
+    if (recycledItemWasCreated) {
         if (recycledItem.y > 20) { 
             recycledItem.body.gravity.y = 200;
-
+        
             if (recycledItemsFrame >= 10) {
-                clearInterval(recycledItemCollideInterval); //? спираме проверката за позиция
+                recycledItemCollideInterval.stop(); //? спираме проверката за позиция
             }
-
+        
             recycledItem.body.collideWorldBounds = true; //? разрешаваме сблъсъка на предмета с границите на играта
         }
-    }, 100);
+    }
 }
-let recycledItem;
+
+function recycledItemIntervalsCreate() {    
+    recycledItemCreateInterval = game.time.create(false);
+    recycledItemCreateInterval.loop(1000, recycledCreateFunction, this); //? на всяка секунда ще се появява нов падащ предмет 
+    recycledItemCreateInterval.start();
+    
+    recycledItemCollideInterval = game.time.create(false);
+    recycledItemCollideInterval.loop(100, recycledCollideFunction, this); //? на всеки 100мс проверяваме позицията на предмета
+    recycledItemCollideInterval.start();
+}
+
 
 function recycledItemsFalling() {
     recycledItemsGroup = game.add.group();
