@@ -21,6 +21,7 @@ let keyA;
 let keyS;
 let keyD;
 let keyESC;
+let keyENTER;
 
 let groundLayer;
 let dudeKgs = 0;
@@ -32,6 +33,9 @@ let text3;
 let style;
 let style2;
 let style3;
+
+let volumeText;
+let volumeTextStyle;
 
 let gameHasFinished = false; //? boolean, който отчита дали играта е спечелена или не
 
@@ -75,9 +79,19 @@ let mushroomy = 0;
 let playtimeTimer;
 let mush_timer_spawn;
 let mush_timer_destroy;
-let vol_icon;
-let volButton;
-let volButtonClicked = false;
+
+let masterVolIcon;
+let masterVolButton;
+let masterVolButtonClicked = false;
+
+let volumeAdjustSprite;
+
+let lowerVolButton;
+let lowerVolButtonClicked = false;
+
+let increaseVolButton;
+let increaseVolButtonClicked = false;
+
 let playtimeTimerEnded = false;
 
 let randomItemIndex;
@@ -106,7 +120,7 @@ let recycleLogo2Xpos = recycleLogoXpos + 200;
 
 let gameHasStarted = false;
 
-let helpTextContent = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nEnjoy playing the game :) !\n\nPress ESC to go back to the welcome screen.";
+let helpTextContent = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\nIn the top right corner you can adjust the volume.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nEnjoy playing the game :) !\n\nPress ESC to go back to the welcome screen.";
 let creditsTextContent = `Recycle items art by Clint Bellanger,\n"mushroom" sf by "dklon",\n"calm music" by "Aspecty",\n"pickup sound" by M. Baradari,\ncredit for "recycling music"\ngoes to www.screenhog.com.`;
 let inHelpScene = false;
 let inCreditsScene = false;
@@ -154,11 +168,12 @@ function preload() {
     game.load.image('grass', './images/grass.png');
     game.load.spritesheet('dude_key', './images/red_dude.png', 272 / 4, 288 / 4);
     game.load.spritesheet('dude_green_key', './images/green_dude.png', 272 / 4, 288 / 4);
-    game.load.spritesheet('volume_icon', './images/volume_sprite.png', 690 / 2, 286 / 1);
+    game.load.spritesheet('master_volume_icon', './images/volume_sprite.png', 690 / 2, 286 / 1);
     game.load.spritesheet('recycle_items', './images/recycle_items_spritesheet.png', 1024 / 16, 64 / 1);
     game.load.spritesheet('menu_buttons_sprite_key', './images/menu_buttons_sprite.png', 1200 / 3, 200 / 1);
     game.load.spritesheet('recycled_items', './images/household_items_sprite.png', 960 / 10, 96 / 1);
     game.load.spritesheet('bins', './images/bins_sprite.png', 96 / 3, 32 / 1);
+    game.load.spritesheet('volume_adjust_buttons', './images/volume_adjust_buttons_sprite.png', 200 / 2, 100 / 1);
     game.load.image('block', './images/improved_bar.png');
     game.load.image('tileset', './images/32x32_tileset_terrains_shops.png');
     game.load.image('mushroom_key', './images/mushroom.png');
@@ -482,14 +497,17 @@ const createText = function () {
     style = { font: "22px Consolas", fill: "#ff0000" }; //? стила на текста
     style2 = { font: "22px Consolas", fill: "#39e600" };
     style3 = { font: "18px Times New Roman", fill: "#FFFFFF" };
+    volumeTextStyle = { font: "11px Consolas", fill: "#FFFFFF" };
 
     text = game.add.text(15, 1, "Player 1's kgs: ", style); //? тук добавяме текст в играта
     text2 = game.add.text(462, 1, "Player 2's kgs: ", style2);
     text3 = game.add.text(game.width / 2 + 2, 15, `00:00`, style3);
+    volumeText = game.add.text(game.width / 2 + 335, 14.5, `100%`, volumeTextStyle);
 
     text.anchor.setTo(0)
     text2.anchor.set(0);
     text3.anchor.set(0.5);
+    volumeText.anchor.set(0.5);
 }
 
 const createStatusBar = function () {
@@ -502,6 +520,15 @@ const createBackground = function () {
     background = game.add.image(0, 0, 'grass');
     background.width = game.width;
     background.height = game.height;
+}
+
+function lowerMasterVolume() {
+    game.sound.volume -= 0.1;
+    volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
+}
+function increaseMasterVolume() {
+    game.sound.volume += 0.1;
+    volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
 }
 
 function createPlayablePart() {
@@ -529,12 +556,20 @@ function createPlayablePart() {
     mush_timer_destroy = game.time.create(false);
     mush_timer_destroy.loop(6000, mushroomsKill, this);
 
-    volButton = game.add.button(802, 16, 'volume_icon', volButtonClick, this); volButton.frame = 0;
-    volButton.scale.setTo(0.1)
-    volButton.anchor.setTo(0.5)
+    lowerVolButton = game.add.button(730, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
+    lowerVolButton.scale.setTo(0.15);
+    lowerVolButton.anchor.setTo(0.5);
+    
+    increaseVolButton = game.add.button(773, 14.5, 'volume_adjust_buttons', increaseMasterVolume, this); increaseVolButton.frame = 1;
+    increaseVolButton.scale.setTo(0.15);
+    increaseVolButton.anchor.setTo(0.5);
 
-    volButton.onInputOver.add(volButtonOver, this);
-    volButton.onInputOut.add(volButtonOut, this);
+    masterVolButton = game.add.button(802, 16, 'master_volume_icon', masterVolButtonClick, this); masterVolButton.frame = 0;
+    masterVolButton.scale.setTo(0.1);
+    masterVolButton.anchor.setTo(0.5);
+
+    masterVolButton.onInputOver.add(masterVolButtonOver, this);
+    masterVolButton.onInputOut.add(masterVolButtonOut, this);
 
     startTime = new Date();
     totalTime = 180; //? секундите за таймера
@@ -879,13 +914,15 @@ function welcomeScreen() {
 
     keyESC = game.input.keyboard.addKey(Phaser.Keyboard.ESC);
     keyESC.onDown.add(escButtonEvent)
+    keyENTER = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+    keyENTER.onDown.add(startButtonEvent)
 }
 
-function volButtonOver() {
-    volButton.scale.setTo(0.105)
+function masterVolButtonOver() {
+    masterVolButton.scale.setTo(0.105)
 }
-function volButtonOut() {
-    volButton.scale.setTo(0.1)
+function masterVolButtonOut() {
+    masterVolButton.scale.setTo(0.1)
 }
 
 function startButtonOver() {
@@ -934,16 +971,18 @@ function creditsButtonOut() {
 }
 
 function startButtonEvent() {
-    gameHasStarted = true;
-    copyrightText.kill();
-    recycleLogo.kill();
-    recycleLogo2.kill();
-    menuBackground.kill()
-    welcomeText.kill();
-
-    startButton.pendingDestroy = true; //? тук премахваме бутоните
-    helpButton.pendingDestroy = true; 
-    creditsButton.pendingDestroy = true; 
+    if (!inCreditsScene && !inHelpScene && !gameEnded) {
+        gameHasStarted = true;
+        copyrightText.kill();
+        recycleLogo.kill();
+        recycleLogo2.kill();
+        menuBackground.kill()
+        welcomeText.kill();
+    
+        startButton.pendingDestroy = true; //? тук премахваме бутоните
+        helpButton.pendingDestroy = true; 
+        creditsButton.pendingDestroy = true; 
+    }
 }
 function helpButtonEvent() {
     inHelpScene = true;
@@ -1003,7 +1042,7 @@ function escButtonCleanup() {
         text2.kill();
         text3.kill();
 
-        volButton.kill();
+        masterVolButton.kill();
 
         congratsText.kill();
         dialogBoxText.kill();        
@@ -1016,16 +1055,16 @@ function escButtonCleanup() {
     //? Правим всички тези проверки за да избегнем "undefined" грешки.
 }
 
-const volButtonClick = function () {
-    if (!volButtonClicked) {
-        music1.pause()
-        volButton.frame = 1;
-        volButtonClicked = true;
+const masterVolButtonClick = function () {
+    if (!masterVolButtonClicked) {
+        game.sound.mute = true;
+        masterVolButton.frame = 1;
+        masterVolButtonClicked = true;
     }
     else {
-        music1.resume()
-        volButton.frame = 0;
-        volButtonClicked = false;
+        game.sound.mute = false;
+        masterVolButton.frame = 0;
+        masterVolButtonClicked = false;
     }
 }
 
