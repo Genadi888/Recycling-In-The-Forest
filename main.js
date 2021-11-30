@@ -51,7 +51,7 @@ let timer;
 let sign_timer;
 let mushroom;
 
-let bg;
+let background;
 
 const game = new Phaser.Game(
     832,
@@ -88,17 +88,12 @@ let isForYellow;
 let copyrightTextStyle;
 let copyrightText;
 
-/* 
-    TODO: Да направя бутон за връщане към началното меню след окончателния край на играта.
-    TODO: Може да направя вялящ ефект с рециклирани предмети върху крайния екран.
-
-*/
-
 let welcomeTextStyle;
 let welcomeText;
 
 let startButton;
 let helpButton;
+let creditsButton;
 
 let menuBackground;
 
@@ -111,8 +106,10 @@ let recycleLogo2Xpos = recycleLogoXpos + 200;
 
 let gameHasStarted = false;
 
-let helpText = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nPress ESC to go back to the welcome screen.";
+let helpTextContent = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nEnjoy playing the game :) !\n\nPress ESC to go back to the welcome screen.";
+let creditsTextContent = `Recycle items art by Clint Bellanger,\n"mushroom" sf by "dklon",\n"calm music" by "Aspecty",\n"pickup sound" by M. Baradari,\ncredit for "recycling music"\ngoes to www.screenhog.com.`;
 let inHelpScene = false;
+let inCreditsScene = false;
 
 let dialogBox;
 
@@ -127,6 +124,8 @@ let congratsText;
 let congratsTextStyle;
 let creditsText;
 let creditsTextStyle;
+let helpText;
+let helpTextStyle;
 
 let defWindowText = "Drag the item into a container.";
 
@@ -157,7 +156,7 @@ function preload() {
     game.load.spritesheet('dude_green_key', './images/green_dude.png', 272 / 4, 288 / 4);
     game.load.spritesheet('volume_icon', './images/volume_sprite.png', 690 / 2, 286 / 1);
     game.load.spritesheet('recycle_items', './images/recycle_items_spritesheet.png', 1024 / 16, 64 / 1);
-    game.load.spritesheet('menu_buttons_sprite_key', './images/menu_buttons_sprite.png', 800 / 2, 200 / 1);
+    game.load.spritesheet('menu_buttons_sprite_key', './images/menu_buttons_sprite.png', 1200 / 3, 200 / 1);
     game.load.spritesheet('recycled_items', './images/household_items_sprite.png', 960 / 10, 96 / 1);
     game.load.spritesheet('bins', './images/bins_sprite.png', 96 / 3, 32 / 1);
     game.load.image('block', './images/improved_bar.png');
@@ -500,9 +499,9 @@ const createStatusBar = function () {
 }
 
 const createBackground = function () {
-    bg = game.add.image(0, 0, 'grass');
-    bg.width = game.width;
-    bg.height = game.height;
+    background = game.add.image(0, 0, 'grass');
+    background.width = game.width;
+    background.height = game.height;
 }
 
 function createPlayablePart() {
@@ -606,19 +605,24 @@ function createPlaytimeTimer() {
 }
 
 let recycledItemsGroup;
+
 let recycledItemCreateInterval;
 let recycledItemCollideInterval;
-let i = 0;
+
+let recycledItemPosIndex = 0;
+
 let recycledItem;
+
 let recycledItemWasCreated = false;
 
 function recycledCreateFunction () {
-    recycledItem = recycledItemsGroup.create(0 + i * 83, -100, 'recycled_items', recycledItemsFrame);
+    recycledItem = recycledItemsGroup.create(0 + recycledItemPosIndex * 83, -100, 'recycled_items', recycledItemsFrame);
     recycledItem.body.gravity.y = 400;
     recycledItem.body.bounce.setTo(0, 0.5);
     recycledItem.scale.setTo(0.8);      
+
     recycledItemsFrame++;
-    i++;
+    recycledItemPosIndex++;
     recycledItemWasCreated = true;
 }
 function recycledCollideFunction () {
@@ -826,20 +830,14 @@ function draggingItemCreate() {
     }
 }
 
-let creditsTextContent = `Recycle items art by Clint Bellanger,\n"mushroom" sf by "dklon",\n"calm music" by "Aspecty",\n"pickup sound" by M. Baradari,\ncredit for "recycling music"\ngoes to www.screenhog.com.`;
-
 function createWelText() {
     welcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold', align: 'center' }; //? стила на текста
     welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", welcomeTextStyle); //? тук добавяме текст в заглавното меню
     welcomeText.anchor.setTo(0.5);
 
     copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
-    copyrightText = game.add.text(game.width / 2 + 118, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
+    copyrightText = game.add.text(18, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
     
-    creditsTextStyle = { font: "14px Arial ", fill: "#ED4335", fontWeight: 'Italic', align: 'left'};
-    creditsText = game.add.text(130, 510, creditsTextContent, creditsTextStyle);
-    creditsText.anchor.setTo(0.5);
-
     let grd = welcomeText.context.createLinearGradient(0, 0, 0, welcomeText.height);
     //?  добавяме два цвята за граница
     grd.addColorStop(0, '#DCE35B');
@@ -858,9 +856,10 @@ function welcomeScreen() {
 
     P1FinishedProcess = false;
     draggingItemIndex = 0;
+    recycledItemPosIndex = 0;
 
     gameHasCreatedEverything = false;
-    gameEnded = false;
+    
     playtimeTimerEnded = false;
 
     dudeKgs = 0;
@@ -871,34 +870,12 @@ function welcomeScreen() {
     dialogBoxCreated = false;
 
     recycledItemsFrame = 0;
-    clearInterval(recycledItemCreateInterval); //? премахваме двата интервала
-    clearInterval(recycledItemCollideInterval);
     
     menuBackground = game.add.image(0, 0, 'menu_background');
 
     createWelText();
 
-    recycleLogo = game.add.image(recycleLogoXpos, recycleLogosYpos, 'recycle_logo');
-    recycleLogo.scale.setTo(0.03);
-    recycleLogo.anchor.setTo(0.5);
-
-    recycleLogo2 = game.add.image(recycleLogo2Xpos, recycleLogosYpos, 'recycle_logo');
-    recycleLogo2.scale.setTo(0.03);
-    recycleLogo2.anchor.setTo(0.5);
-
-    startButton = game.add.button(game.width / 2, game.height / 2 - 50, 'menu_buttons_sprite_key', startButtonEvent, this); startButton.frame = 1;
-    startButton.scale.setTo(0.3)
-    startButton.anchor.setTo(0.5)
-
-    startButton.onInputOver.add(startButtonOver, this);
-    startButton.onInputOut.add(startButtonOut, this);
-
-    helpButton = game.add.button(game.width / 2, game.height / 2 + 30, 'menu_buttons_sprite_key', helpButtonEvent, this); helpButton.frame = 0;
-    helpButton.scale.setTo(0.3)
-    helpButton.anchor.setTo(0.5)
-
-    helpButton.onInputOver.add(helpButtonOver, this);
-    helpButton.onInputOut.add(helpButtonOut, this);
+    createWelScreenButtons();
 
     keyESC = game.input.keyboard.addKey(Phaser.Keyboard.ESC);
     keyESC.onDown.add(escButtonEvent)
@@ -941,17 +918,32 @@ function helpButtonOut() {
     recycleLogo2.y = recycleLogosYpos;
 }
 
+function creditsButtonOver() {
+    creditsButton.scale.setTo(0.4)
+
+    recycleLogo.y = creditsButton.y;
+    recycleLogo2.y = creditsButton.y;
+    recycleLogo.x = creditsButton.x - (creditsButton.width / 2 + 20);
+    recycleLogo2.x = creditsButton.x + (creditsButton.width / 2 + 20);
+}
+function creditsButtonOut() {
+    creditsButton.scale.setTo(0.3)
+
+    recycleLogo.y = recycleLogosYpos;
+    recycleLogo2.y = recycleLogosYpos;
+}
+
 function startButtonEvent() {
     gameHasStarted = true;
     copyrightText.kill();
-    creditsText.kill();
     recycleLogo.kill();
     recycleLogo2.kill();
     menuBackground.kill()
     welcomeText.kill();
 
-    startButton.pendingDestroy = true; //? тук премахваме бутона
-    helpButton.pendingDestroy = true; //? тук премахваме бутона
+    startButton.pendingDestroy = true; //? тук премахваме бутоните
+    helpButton.pendingDestroy = true; 
+    creditsButton.pendingDestroy = true; 
 }
 function helpButtonEvent() {
     inHelpScene = true;
@@ -959,39 +951,69 @@ function helpButtonEvent() {
     recycleLogo2.kill();
     
     welcomeText.kill();
-    welcomeTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold' };
-    welcomeText = game.add.text(game.width / 2, 200, helpText, welcomeTextStyle);
-    welcomeText.align = 'center';
-    welcomeText.anchor.setTo(0.5);
+    helpTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold', align: 'center'};
+    helpText = game.add.text(game.width / 2, 220, helpTextContent, helpTextStyle);
+    helpText.anchor.setTo(0.5);
 
-    startButton.pendingDestroy = true; //? тук премахваме бутона
+    startButton.pendingDestroy = true; //? тук премахваме бутоните
     helpButton.pendingDestroy = true;
+    creditsButton.pendingDestroy = true;
+}
+function creditsButtonEvent() {
+    inCreditsScene = true;
+    recycleLogo.kill();
+    recycleLogo2.kill();
+    
+    welcomeText.kill();
+    creditsTextStyle = { font: "30px Times New Roman ", fill: "#14A0F9", fontWeight: 'bold', align: 'center'};
+    creditsText = game.add.text(game.width / 2, game.height / 2 - 80, creditsTextContent, creditsTextStyle);
+    creditsText.anchor.setTo(0.5);
+
+    startButton.pendingDestroy = true; //? тук премахваме бутоните
+    helpButton.pendingDestroy = true;
+    creditsButton.pendingDestroy = true;
 }
 
 function escButtonEvent() {
-    if (inHelpScene || gameEnded) {
-        gameHasStarted = false;
-        console.log("ESC pressed");
+    if (inCreditsScene || inHelpScene || gameEnded) {
+        escButtonCleanup(); //? провеждаме функцията за почиставане
         welcomeScreen();
-        escButtonCleanup();
         inHelpScene = false;
+        inCreditsScene = false;
         gameEnded = false;
+        gameHasStarted = false;
     }
 }
 
 function escButtonCleanup() {
-    bg.kill();
-    dude.kill();
-    dude2.kill();
-    groundLayer.kill();
-    statusbar.kill();
-    dialogBox.kill();
-    text.kill();
-    text2.kill();
-    text3.kill();
-    volButton.kill();
-    congratsText.kill();
-    dialogBoxText.kill();
+    if (gameEnded) { //? Ако ESC бутона е натиснат след края на играта, да се изпълни следния код:
+        recycledItemCreateInterval.stop(); //? спираме създаването на падащите елементи и проверката за позиция
+        recycledItemCollideInterval.stop(); 
+
+        background.kill();
+
+        dude.kill();
+        dude2.kill();
+
+        groundLayer.kill();
+
+        statusbar.kill();
+        dialogBox.kill();
+        text.kill();
+        text2.kill();
+        text3.kill();
+
+        volButton.kill();
+
+        congratsText.kill();
+        dialogBoxText.kill();        
+    } else if (inHelpScene) {  //? ако е натиснат в "help" сцената
+        helpText.kill();
+    } else if (inCreditsScene) {
+        creditsText.kill();
+    }
+
+    //? Правим всички тези проверки за да избегнем "undefined" грешки.
 }
 
 const volButtonClick = function () {
@@ -1063,4 +1085,35 @@ function createAudio() {
     powup = game.add.audio('powUp_sound');
     congratsMelody = game.add.audio('congrats_melody');
     calmMusic = game.add.audio('calm_music');
+}
+
+function createWelScreenButtons() {
+    recycleLogo = game.add.image(recycleLogoXpos, recycleLogosYpos, 'recycle_logo');
+    recycleLogo.scale.setTo(0.03);
+    recycleLogo.anchor.setTo(0.5);
+
+    recycleLogo2 = game.add.image(recycleLogo2Xpos, recycleLogosYpos, 'recycle_logo');
+    recycleLogo2.scale.setTo(0.03);
+    recycleLogo2.anchor.setTo(0.5);
+
+    startButton = game.add.button(game.width / 2, game.height / 2 - 50, 'menu_buttons_sprite_key', startButtonEvent, this); startButton.frame = 2;
+    startButton.scale.setTo(0.3)
+    startButton.anchor.setTo(0.5)
+
+    startButton.onInputOver.add(startButtonOver, this);
+    startButton.onInputOut.add(startButtonOut, this);
+
+    helpButton = game.add.button(game.width / 2, startButton.y + 70, 'menu_buttons_sprite_key', helpButtonEvent, this); helpButton.frame = 1;
+    helpButton.scale.setTo(0.3)
+    helpButton.anchor.setTo(0.5)
+
+    helpButton.onInputOver.add(helpButtonOver, this);
+    helpButton.onInputOut.add(helpButtonOut, this);
+    
+    creditsButton = game.add.button(game.width / 2, helpButton.y + 70, 'menu_buttons_sprite_key', creditsButtonEvent, this); creditsButton.frame = 0;
+    creditsButton.scale.setTo(0.3)
+    creditsButton.anchor.setTo(0.5)
+
+    creditsButton.onInputOver.add(creditsButtonOver, this);
+    creditsButton.onInputOut.add(creditsButtonOut, this);
 }
