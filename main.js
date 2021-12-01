@@ -68,21 +68,22 @@ const game = new Phaser.Game(
 }
 );
 
-let dude1_vel_x = 200;
-let dude1_vel_y = 200;
-let dude2_vel_x = 200;
-let dude2_vel_y = 200;
+let dude1VelX = 200;
+let dude1VelY = 200;
+let dude2VelX = 200;
+let dude2VelY = 200;
 
-let mushroomx = 900; //? x е 900 за да не може да се стигне гъбката, когато не трябва
-let mushroomy = 0;
+let mushroomX = 900; //? x е 900 за да не може да се стигне гъбката, когато не трябва
+let mushroomY = 0;
 
 let playtimeTimer;
-let mush_timer_spawn;
-let mush_timer_destroy;
+let mushTimerSpawn;
+let mushTimerDestroy;
 
 let masterVolIcon;
 let masterVolButton;
 let masterVolButtonClicked = false;
+let gameAudioIsMuted = false;
 
 let volumeAdjustSprite;
 
@@ -195,6 +196,11 @@ let recycledItemsFrame = 0;
 
 function update() {
 
+    if (inHelpScene) {
+        dude.animations.play('right');
+        dude2.animations.play('left');
+    }
+
     if (recycledItemsFrame >= 10) { //? ако всички рециклирани предмети в спрайта са се изредили, не създавай повече предмети
         recycledItemCreateInterval.stop();
     }
@@ -222,7 +228,7 @@ function update() {
         }
 
         if (gameHasFinished || dialogBoxCreated) {
-            mush_timer_spawn.stop();
+            mushTimerSpawn.stop();
             currentItem.kill()
         }
 
@@ -259,22 +265,22 @@ function update() {
 
         if (!playtimeTimerEnded) { //? ако времето на таймера свърши, забрани движението
             if (cursors.up.isDown) {
-                dude.body.velocity.y = - dude1_vel_y;
+                dude.body.velocity.y = - dude1VelY;
                 dude.body.velocity.x = 0;
                 dude.animations.play('up')
             }
             else if (cursors.down.isDown) {
-                dude.body.velocity.y = dude1_vel_y;
+                dude.body.velocity.y = dude1VelY;
                 dude.body.velocity.x = 0;
                 dude.animations.play('down')
             }
             else if (cursors.left.isDown) {
-                dude.body.velocity.x = -dude1_vel_x;
+                dude.body.velocity.x = -dude1VelX;
                 dude.body.velocity.y = 0;
                 dude.animations.play('left')
             }
             else if (cursors.right.isDown) {
-                dude.body.velocity.x = dude1_vel_x;
+                dude.body.velocity.x = dude1VelX;
                 dude.body.velocity.y = 0;
                 dude.animations.play('right')
             }
@@ -285,22 +291,22 @@ function update() {
             }
 
             if (keyW.isDown) {
-                dude2.body.velocity.y = - dude2_vel_y;
+                dude2.body.velocity.y = - dude2VelY;
                 dude2.body.velocity.x = 0;
                 dude2.animations.play('up')
             }
             else if (keyS.isDown) {
-                dude2.body.velocity.y = dude2_vel_y;
+                dude2.body.velocity.y = dude2VelY;
                 dude2.body.velocity.x = 0;
                 dude2.animations.play('down')
             }
             else if (keyA.isDown) {
-                dude2.body.velocity.x = -dude2_vel_x;
+                dude2.body.velocity.x = -dude2VelX;
                 dude2.body.velocity.y = 0;
                 dude2.animations.play('left')
             }
             else if (keyD.isDown) {
-                dude2.body.velocity.x = dude2_vel_x;
+                dude2.body.velocity.x = dude2VelX;
                 dude2.body.velocity.y = 0;
                 dude2.animations.play('right')
             }
@@ -314,8 +320,8 @@ function update() {
 }
 
 const createMap = function () {
-    map = game.add.tilemap('tilemap') //създаваме я като променлива, името го взимаме от load
-    map.addTilesetImage('shop_stuff', 'tileset') //първото е името на tileset-а (намира се в .json файла), второто ключа на image.png
+    map = game.add.tilemap('tilemap') //? създаваме я като променлива, името го взимаме от load
+    map.addTilesetImage('shop_stuff', 'tileset') //? първото е името на tileset-а (намира се в .json файла), второто ключа на image.png
     groundLayer = map.createLayer(0);
     map.createLayer('\u0421\u043b\u043e\u0439 \u0441 \u043f\u043b\u043e\u0447\u043a\u0438 1') //кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
     map.setCollisionByExclusion([])
@@ -438,71 +444,71 @@ const mushroomCreate = function () {
 }
 
 const mushroomsKill = function () {
-    mushroom.x = mushroomx;
-    mushroom.y = mushroomy;
-    mush_timer_destroy.destroy();
+    mushroom.x = mushroomX;
+    mushroom.y = mushroomY;
+    mushTimerDestroy.destroy();
 }
 
 const mush1 = function () { //? една от възможните позиции на гъбката
     mushroom.x = 116;
     mushroom.y = 162;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush2 = function () {
     mushroom.x = 198;
     mushroom.y = 290;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush3 = function () {
     mushroom.x = 510;
     mushroom.y = 215;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush4 = function () {
     mushroom.x = 390;
     mushroom.y = 380;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush5 = function () {
     mushroom.x = 626;
     mushroom.y = 476;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush6 = function () {
     mushroom.x = 170;
     mushroom.y = 459;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 const mush7 = function () {
     mushroom.x = 373;
     mushroom.y = 130;
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
-    mush_timer_destroy.start();
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy.start();
 }
 
 const createText = function () {
-    style = { font: "22px Consolas", fill: "#ff0000" }; //? стила на текста
-    style2 = { font: "22px Consolas", fill: "#39e600" };
+    style = { font: "21px Consolas", fill: "#ff0000" }; //? стила на текста
+    style2 = { font: "21px Consolas", fill: "#39e600" };
     style3 = { font: "18px Times New Roman", fill: "#FFFFFF" };
     volumeTextStyle = { font: "11px Consolas", fill: "#FFFFFF" };
 
-    text = game.add.text(15, 1, "Player 1's kgs: ", style); //? тук добавяме текст в играта
-    text2 = game.add.text(462, 1, "Player 2's kgs: ", style2);
+    text = game.add.text(9, 3, "Player 1's kgs: ", style); //? тук добавяме текст в играта
+    text2 = game.add.text(456, 3, "Player 2's kgs: ", style2);
     text3 = game.add.text(game.width / 2 + 2, 15, `00:00`, style3);
-    volumeText = game.add.text(game.width / 2 + 335, 14.5, `100%`, volumeTextStyle);
+    volumeText = game.add.text(game.width / 2 + 334, 14.5, `100%`, volumeTextStyle);
 
     text.anchor.setTo(0)
     text2.anchor.set(0);
@@ -523,12 +529,17 @@ const createBackground = function () {
 }
 
 function lowerMasterVolume() {
-    game.sound.volume -= 0.1;
-    volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
+    if (!game.sound.mute) {
+        game.sound.volume -= 0.1;
+        volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
+    }
+    
 }
 function increaseMasterVolume() {
-    game.sound.volume += 0.1;
-    volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
+    if (!game.sound.mute) {
+        game.sound.volume += 0.1;
+        volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
+    }    
 }
 
 function createPlayablePart() {
@@ -549,14 +560,14 @@ function createPlayablePart() {
 
     game.time.advancedTiming = true;
 
-    mush_timer_spawn = game.time.create(false);
-    mush_timer_spawn.loop(26000, mushroomCreate, this);
-    mush_timer_spawn.start();
+    mushTimerSpawn = game.time.create(false);
+    mushTimerSpawn.loop(26000, mushroomCreate, this);
+    mushTimerSpawn.start();
 
-    mush_timer_destroy = game.time.create(false);
-    mush_timer_destroy.loop(6000, mushroomsKill, this);
+    mushTimerDestroy = game.time.create(false);
+    mushTimerDestroy.loop(6000, mushroomsKill, this);
 
-    lowerVolButton = game.add.button(730, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
+    lowerVolButton = game.add.button(728, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
     lowerVolButton.scale.setTo(0.15);
     lowerVolButton.anchor.setTo(0.5);
     
@@ -572,7 +583,7 @@ function createPlayablePart() {
     masterVolButton.onInputOut.add(masterVolButtonOut, this);
 
     startTime = new Date();
-    totalTime = 180; //? секундите за таймера
+    totalTime = 60; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
@@ -889,7 +900,7 @@ function welcomeScreen() {
     gameHasFinished = false;
     gameHasStarted = false;
 
-    P1FinishedProcess = false;
+    P1FinishedProcess = true;
     draggingItemIndex = 0;
     recycledItemPosIndex = 0;
 
@@ -994,6 +1005,32 @@ function helpButtonEvent() {
     helpText = game.add.text(game.width / 2, 220, helpTextContent, helpTextStyle);
     helpText.anchor.setTo(0.5);
 
+    dude = game.add.sprite(67, game.height / 2, 'dude_key');
+    dude.anchor.setTo(0.5);
+    dude.scale.setTo(1.3);
+    dude.angle = -50;
+    dude.frame = 9;
+    dude.animations.add('right', [8, 9, 10, 11], 5, true);
+    
+    dude2 = game.add.sprite(game.width - 70, game.height - 70, 'dude_green_key');
+    dude2.anchor.setTo(0.5);
+    dude2.scale.setTo(1.3);
+    dude2.frame = 7;
+    dude2.animations.add('left', [4, 5, 6, 7], 5, true);
+    
+    mushroom = game.add.sprite(111, 268, 'mushroom_key');
+    mushroom.anchor.setTo(0.5);
+    mushroom.height = 50;
+    mushroom.width = 50;
+    mushroom.angle = -50;
+
+    randomItemIndex = game.rnd.integerInRange(0, 15);
+
+    currentItem = game.add.sprite(game.width - 132, game.height - 65, 'recycle_items');
+    currentItem.frame = randomItemIndex; //! произволен предмет от спрайта
+    currentItem.anchor.setTo(0.5);
+    game.physics.arcade.enable(currentItem);
+    
     startButton.pendingDestroy = true; //? тук премахваме бутоните
     helpButton.pendingDestroy = true;
     creditsButton.pendingDestroy = true;
@@ -1048,6 +1085,10 @@ function escButtonCleanup() {
         dialogBoxText.kill();        
     } else if (inHelpScene) {  //? ако е натиснат в "help" сцената
         helpText.kill();
+        dude.kill();
+        dude2.kill();
+        mushroom.kill();
+        currentItem.kill();
     } else if (inCreditsScene) {
         creditsText.kill();
     }
@@ -1057,19 +1098,23 @@ function escButtonCleanup() {
 
 const masterVolButtonClick = function () {
     if (!masterVolButtonClicked) {
+        console.log(game.sound.volume);
         game.sound.mute = true;
+        gameAudioIsMuted = true;
         masterVolButton.frame = 1;
         masterVolButtonClicked = true;
     }
     else {
+        console.log(game.sound.volume);
         game.sound.mute = false;
+        gameAudioIsMuted = false;
         masterVolButton.frame = 0;
         masterVolButtonClicked = false;
     }
 }
 
 const mushAssign = function () {
-    mushroom = game.add.sprite(mushroomx, mushroomy, 'mushroom_key')
+    mushroom = game.add.sprite(mushroomX, mushroomY, 'mushroom_key')
     mushroom.scale.setTo(0.1);
     mushroom.anchor.setTo(0.5);
     mushroom.height = 50;
@@ -1080,24 +1125,24 @@ const mushAssign = function () {
 
 function collisionHandler1(obj1, obj2) {
     mushroomsKill()
-    dude1_vel_x += 100;
-    dude1_vel_y += 100;
+    dude1VelX += 100;
+    dude1VelY += 100;
     powup.play();
 
     this.time.events.add(Phaser.Timer.SECOND * 5, function () {
-        dude1_vel_x -= 100;
-        dude1_vel_y -= 100;
+        dude1VelX -= 100;
+        dude1VelY -= 100;
     });
 }
 function collisionHandler2(obj1, obj2) {
     mushroomsKill()
-    dude2_vel_x += 100;
-    dude2_vel_y += 100;
+    dude2VelX += 100;
+    dude2VelY += 100;
     powup.play();
 
     this.time.events.add(Phaser.Timer.SECOND * 5, function () {
-        dude2_vel_x -= 100;
-        dude2_vel_y -= 100;
+        dude2VelX -= 100;
+        dude2VelY -= 100;
     });
 }
 
