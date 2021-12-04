@@ -428,10 +428,10 @@ const createKeys = function () {
 }
 
 const mushroomCreate = function () {
-    let rnd_gubka = game.rnd.integerInRange(1, 7)
+    let rndMush = game.rnd.integerInRange(1, 7)
 
     if (!gameHasFinished) {
-        switch (rnd_gubka) {
+        switch (rndMush) {
             case 1: mush1(); break;
             case 2: mush2(); break;
             case 3: mush3(); break;
