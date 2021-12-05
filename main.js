@@ -583,7 +583,7 @@ function createPlayablePart() {
     masterVolButton.onInputOut.add(masterVolButtonOut, this);
 
     startTime = new Date();
-    totalTime = 60; //? секундите за таймера
+    totalTime = 120; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
     playtimeTimer = game.time.events.loop(100, function () {
@@ -900,7 +900,7 @@ function welcomeScreen() {
     gameHasFinished = false;
     gameHasStarted = false;
 
-    P1FinishedProcess = true;
+    P1FinishedProcess = false;
     draggingItemIndex = 0;
     recycledItemPosIndex = 0;
 
