@@ -1,0 +1,86 @@
+canvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    -webkit-transform: translateX(-50%) translateY(-50%);
+    transform: translateX(-50%) translateY(-50%);
+}
+
+body {
+    background-color: #001a00;
+}
+
+table {
+    opacity: 0;
+
+    box-shadow: 0px 0px 10px 3px rgb(0, 0, 0);
+    background-color: rgb(8, 8, 8);
+
+    border: 5px solid rgb(12, 87, 3);
+    border-radius: 3px;
+
+    margin-top: 5%;
+    margin-left: 3px;
+
+    color: white;
+
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+th {
+    padding: 7px 30px 7px 0px;
+
+    font-weight: bold;
+    font-size: 17px;
+}
+
+th p {
+    display: inline-block;
+}
+
+th img {
+    display: inline-block;
+    margin-left: -30px;
+    margin-top: 11px;
+}
+
+th strong {
+    left: 10px;
+    bottom: 10px;
+}
+
+a {
+    color: aqua;
+}
+
+button {
+    z-index: auto;
+
+    border: none;
+    border-top-left-radius: 3px;
+    
+    position: relative;
+    left: -6.6px;
+    top: -68px;
+
+    font-size: 15px;
+
+    margin: 0px 0px 0px 0px;
+    padding: 3px 3px 3px 3px;
+
+    background-color: rgb(165, 42, 42);
+
+    transition-duration: 0s;
+    transition-delay: 0ms;
+}
+
+button:hover {
+    background-color: rgb(211, 6, 6);
+    color: white;
+}
+
+table tr td {
+    border-top: rgb(12, 87, 3) 2px dotted;
+    padding: 10px 0px 10px 10px;
+}

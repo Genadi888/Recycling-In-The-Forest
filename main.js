@@ -49,10 +49,6 @@ let congratsMelody;
 let calmMusic;
 let calmMusicIsPlaying = false;
 
-let statusbar;
-let counterS = 0;
-let timer;
-let sign_timer;
 let mushroom;
 
 let background;
@@ -64,7 +60,8 @@ const game = new Phaser.Game(
     '', {
     preload,
     create,
-    update
+    update,
+    render
 }
 );
 
@@ -165,8 +162,8 @@ let windowFinishedTravelling = false;
 
 
 function preload() {
-    game.load.tilemap('tilemap', './tilemap/forest_place.json', null, Phaser.Tilemap.TILED_JSON) //зареждаме картата
-    game.load.image('grass', './images/grass.png');
+    game.load.tilemap('tilemap', './tilemap/forest_place_large.json', null, Phaser.Tilemap.TILED_JSON) //зареждаме картата
+    game.load.image('grass', './images/grass_background.png');
     game.load.spritesheet('dude_key', './images/red_dude.png', 272 / 4, 288 / 4);
     game.load.spritesheet('dude_green_key', './images/green_dude.png', 272 / 4, 288 / 4);
     game.load.spritesheet('master_volume_icon', './images/volume_sprite.png', 690 / 2, 286 / 1);
@@ -181,11 +178,21 @@ function preload() {
     game.load.image('menu_background', './images/menu_background.png');
     game.load.image('recycle_logo', './images/recycle_logo.png');
     game.load.image('dialog_box', './images/dialog_box.png');
+    game.load.image('grass_objects_key', './images/tiles.png');
     game.load.audio('pickup_sound', './audio/pickup_sound.wav');
     game.load.audio('powUp_sound', './audio/powup_sound.wav');
     game.load.audio('plant_music', './audio/plant_music.mp3');
     game.load.audio('congrats_melody', './audio/congrats_melody.ogg');
     game.load.audio('calm_music', './audio/calm_music.mp3');
+}
+
+function render() {
+    // if (gameHasStarted) {
+    //     game.debug.body(dude);
+    //     game.debug.body(dude2);
+    //     game.debug.body(groundLayer);
+        
+    // }
 }
 
 function create() {
@@ -226,6 +233,9 @@ function update() {
         if (!gameHasCreatedEverything) {
             createPlayablePart();
         }
+
+        // masterVolButton.y = game.camera.y
+        // masterVolButton.x = game.camera.x
 
         if (gameHasFinished || dialogBoxCreated) {
             mushTimerSpawn.stop();
@@ -322,8 +332,11 @@ function update() {
 const createMap = function () {
     map = game.add.tilemap('tilemap') //? създаваме я като променлива, името го взимаме от load
     map.addTilesetImage('shop_stuff', 'tileset') //? първото е името на tileset-а (намира се в .json файла), второто ключа на image.png
-    groundLayer = map.createLayer(0);
-    map.createLayer('\u0421\u043b\u043e\u0439 \u0441 \u043f\u043b\u043e\u0447\u043a\u0438 1') //кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
+    map.addTilesetImage('grass_objects', 'grass_objects_key')
+    // map.createLayer('uncollidable layer')
+    groundLayer = map.createLayer('Layer 1') //? кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
+    map.createLayer('Layer 2')
+ 
     map.setCollisionByExclusion([])
     game.physics.enable(groundLayer);
 }
@@ -348,6 +361,11 @@ const createPlayers = function () {
     game.physics.enable(dude);
     game.physics.enable(dude2);
 
+    game.camera.follow(dude);
+    game.camera.follow(dude2);
+
+    game.world.setBounds(0, 0, game.width*4, game.height*4);
+
     dude.body.collideWorldBounds = true;
     dude2.body.collideWorldBounds = true;
 
@@ -370,8 +388,7 @@ const createItems = function () {
     }
 }
 
-function playerKgCalculator(input) { //? добавя килограми към променливата за килограми на конкретния играч
-    let playerId = input[0];
+function playerKgCalculator(playerId) { //? добавя килограми към променливата за килограми на конкретния играч
     let kgsToAdd = 0;
 
     switch (currentItem.frame) {
@@ -393,25 +410,20 @@ function playerKgCalculator(input) { //? добавя килограми към 
         case 15: kgsToAdd += 0.980; break; //! spray can
     }
 
-    if (playerId === 'dude') { //? към коя променлива да добави
-        dudeKgs += kgsToAdd;
-    } else {
-        dude2Kgs += kgsToAdd;
-    }
-
+    playerId === 'dude' ? dudeKgs += kgsToAdd : dude2Kgs += kgsToAdd; //? към коя променлива да добави
 }
 
 const itemCollect = function () {
     game.physics.arcade.collide(dude, currentItem, function (dude, currentItem) { //! червеното
         currentItem.kill()   //? предметът се взима от първото човече
-        playerKgCalculator(['dude']);
+        playerKgCalculator('dude');
         createItems()  //? отново се създава предметът
         dudePickupSound.play()
     });
 
     game.physics.arcade.collide(dude2, currentItem, function (dude2, currentItem) { //! зеленото
         currentItem.kill()    //? предметът се взима от първото човече
-        playerKgCalculator(['dude2']);
+        playerKgCalculator('dude2');
         createItems()   //? отново се създава предметът
         dude2PickupSound.play()
     });
@@ -522,10 +534,25 @@ const createStatusBar = function () {
     statusbar.anchor.y = 0
 }
 
+
+function groupStatusBar() {
+    statusBarGroup = game.add.group();
+    statusBarGroup.add(statusbar);
+    statusBarGroup.add(volumeText);
+    statusBarGroup.add(text);
+    statusBarGroup.add(text2);
+    statusBarGroup.add(text3);
+    statusBarGroup.add(masterVolButton)
+    statusBarGroup.add(lowerVolButton);
+    statusBarGroup.add(increaseVolButton);
+
+    statusBarGroup.fixedToCamera = true;
+}
+
 const createBackground = function () {
     background = game.add.image(0, 0, 'grass');
-    background.width = game.width;
-    background.height = game.height;
+    // background.width = game.width;
+    // background.height = game.height;
 }
 
 function lowerMasterVolume() {
@@ -541,32 +568,34 @@ function increaseMasterVolume() {
         volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
     }    
 }
+let statusBarGroup; 
 
 function createPlayablePart() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
-    game.scale.pageAlignVertically = true;
+    // game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
+    // game.scale.pageAlignVertically = true;
 
     createBackground();      //? създаваме поляната
+    createMap();         //? създаваме tile-картата
     createPlayers();
     createItems();         //? с тази функция предметите се създават
     createKeys();         //? функцията за движение чрез клавишите
-    createMap();         //? създаваме tile-картата
     mushAssign();       //? създаваме гъбката
     createStatusBar();
     createText();
     createAudio();
-
+    
     game.time.advancedTiming = true;
-
+    
     mushTimerSpawn = game.time.create(false);
     mushTimerSpawn.loop(26000, mushroomCreate, this);
     mushTimerSpawn.start();
-
+    
+    
     mushTimerDestroy = game.time.create(false);
     mushTimerDestroy.loop(6000, mushroomsKill, this);
-
+    
     lowerVolButton = game.add.button(728, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
     lowerVolButton.scale.setTo(0.15);
     lowerVolButton.anchor.setTo(0.5);
@@ -574,18 +603,20 @@ function createPlayablePart() {
     increaseVolButton = game.add.button(773, 14.5, 'volume_adjust_buttons', increaseMasterVolume, this); increaseVolButton.frame = 1;
     increaseVolButton.scale.setTo(0.15);
     increaseVolButton.anchor.setTo(0.5);
-
+    
     masterVolButton = game.add.button(802, 16, 'master_volume_icon', masterVolButtonClick, this); masterVolButton.frame = 0;
     masterVolButton.scale.setTo(0.1);
     masterVolButton.anchor.setTo(0.5);
-
+    
     masterVolButton.onInputOver.add(masterVolButtonOver, this);
     masterVolButton.onInputOut.add(masterVolButtonOut, this);
-
+    
     startTime = new Date();
-    totalTime = 120; //? секундите за таймера
+    totalTime = 10; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
+    
+    groupStatusBar();
     playtimeTimer = game.time.events.loop(100, function () {
         updatePlaytimeTimer();
     });
@@ -594,7 +625,7 @@ function createPlayablePart() {
 }
 
 function createDialogBoxPart() {
-    dude.body.velocity.y = 0; //? забраняваме движението на играчите и зпираме анимациите
+    dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
     dude.body.velocity.x = 0;
     dude2.body.velocity.y = 0;
     dude2.body.velocity.x = 0;
@@ -894,8 +925,8 @@ function createWelText() {
 }
 
 function welcomeScreen() {
-    game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
-    game.scale.pageAlignVertically = true;
+    // game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
+    // game.scale.pageAlignVertically = true;
 
     gameHasFinished = false;
     gameHasStarted = false;
