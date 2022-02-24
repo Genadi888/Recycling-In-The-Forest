@@ -14,7 +14,6 @@ window.addEventListener('load', () => {
     function startTableOpacityIncrease(element, opacity) {
         const opacityInterval = setInterval(() => {
             opacity += 0.015;
-            console.log(opacity);
             element.style.opacity = String(opacity);
 
             if (opacity >= 1) {

@@ -191,7 +191,7 @@ function render() {
     //     game.debug.body(dude);
     //     game.debug.body(dude2);
     //     game.debug.body(groundLayer);
-        
+
     // }
 }
 
@@ -200,6 +200,7 @@ function create() {
 }
 
 let recycledItemsFrame = 0;
+let groupedItemsInWindow = 0;
 
 function update() {
 
@@ -218,6 +219,10 @@ function update() {
 
     if (canClick && !draggingIsDone) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
         draggingAndDroppingItem();
+        // if (!groupedItemsInWindow) {
+            // groupItemsInWindow();
+        //     groupedItemsInWindow = true;
+        // }
     }
 
     if (dialogBoxCreated) {
@@ -245,10 +250,22 @@ function update() {
         game.physics.arcade.collide(dude, mushroom, collisionHandler1, null, this);
         game.physics.arcade.collide(dude2, mushroom, collisionHandler2, null, this);
 
-        if (timeElapsed >= totalTime && !windowFinishedTravelling) { //? ако времето на главния таймер е изтекло, зануляваме текста и преминаваме към следващата фаза на играта
+        if (timeElapsed >= totalTime && !windowFinishedTravelling && !playtimeTimerEnded) { //? ако времето на главния таймер е изтекло, зануляваме текста и преминаваме към следващата фаза на играта
             text3.setText("00:00")
             playtimeTimerEnded = true;
-            dialogWindow();
+
+            dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
+            dude.body.velocity.x = 0;
+            dude2.body.velocity.y = 0;
+            dude2.body.velocity.x = 0;
+            dude.animations.stop()
+            dude2.animations.stop()
+
+            console.log('playtime ended!');
+
+            setTimeout(() => {
+                dialogWindow();
+            }, 1000);
         }
 
         if (game.physics.arcade.collide(dude, groundLayer) == true) {
@@ -336,7 +353,7 @@ const createMap = function () {
     // map.createLayer('uncollidable layer')
     groundLayer = map.createLayer('Layer 1') //? кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
     map.createLayer('Layer 2')
- 
+
     map.setCollisionByExclusion([])
     game.physics.enable(groundLayer);
 }
@@ -364,7 +381,7 @@ const createPlayers = function () {
     game.camera.follow(dude);
     game.camera.follow(dude2);
 
-    game.world.setBounds(0, 0, game.width*4, game.height*4);
+    game.world.setBounds(0, 0, game.width * 4, game.height * 4);
 
     dude.body.collideWorldBounds = true;
     dude2.body.collideWorldBounds = true;
@@ -560,15 +577,15 @@ function lowerMasterVolume() {
         game.sound.volume -= 0.1;
         volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
     }
-    
+
 }
 function increaseMasterVolume() {
     if (!game.sound.mute) {
         game.sound.volume += 0.1;
         volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
-    }    
+    }
 }
-let statusBarGroup; 
+let statusBarGroup;
 
 function createPlayablePart() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -585,37 +602,37 @@ function createPlayablePart() {
     createStatusBar();
     createText();
     createAudio();
-    
+
     game.time.advancedTiming = true;
-    
+
     mushTimerSpawn = game.time.create(false);
     mushTimerSpawn.loop(26000, mushroomCreate, this);
     mushTimerSpawn.start();
-    
-    
+
+
     mushTimerDestroy = game.time.create(false);
     mushTimerDestroy.loop(6000, mushroomsKill, this);
-    
+
     lowerVolButton = game.add.button(728, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
     lowerVolButton.scale.setTo(0.15);
     lowerVolButton.anchor.setTo(0.5);
-    
+
     increaseVolButton = game.add.button(773, 14.5, 'volume_adjust_buttons', increaseMasterVolume, this); increaseVolButton.frame = 1;
     increaseVolButton.scale.setTo(0.15);
     increaseVolButton.anchor.setTo(0.5);
-    
+
     masterVolButton = game.add.button(802, 16, 'master_volume_icon', masterVolButtonClick, this); masterVolButton.frame = 0;
     masterVolButton.scale.setTo(0.1);
     masterVolButton.anchor.setTo(0.5);
-    
+
     masterVolButton.onInputOver.add(masterVolButtonOver, this);
     masterVolButton.onInputOut.add(masterVolButtonOut, this);
-    
+
     startTime = new Date();
     totalTime = 10; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
-    
+
     groupStatusBar();
     playtimeTimer = game.time.events.loop(100, function () {
         updatePlaytimeTimer();
@@ -623,6 +640,8 @@ function createPlayablePart() {
 
     gameHasCreatedEverything = true; //? вече всичко е създадено и обръщаме boolean-a
 }
+
+let binsArray = [null, null, null];
 
 function createDialogBoxPart() {
     dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
@@ -632,15 +651,18 @@ function createDialogBoxPart() {
     dude.animations.stop()
     dude2.animations.stop()
 
-    if (dialogBox.y === 288) {
+    console.log('dialogBox.y: ', dialogBox.y);
+
+    if (dialogBox.y >= game.camera.y + 288) {
         let index = 0;
         for (let i = 220; i <= 612; i += 196) { //? създаваме 3те кошчета
-            bins = game.add.sprite(i, 410, 'bins');
-            bins.anchor.setTo(0.5);
-            bins.scale.setTo(2);
-            bins.alpha = 0;
-            game.add.tween(bins).to({ alpha: 1 }, 0, "Linear", true, 0);
-            bins.frame = index++;
+            binsArray[index] = game.add.sprite(game.camera.x + i, game.camera.y + 410, 'bins');
+            // windowGroup.add(bins);
+            binsArray[index].anchor.setTo(0.5);
+            binsArray[index].scale.setTo(2);
+            binsArray[index].alpha = 0;
+            game.add.tween(binsArray[index]).to({ alpha: 1 }, 0, "Linear", true, 0);
+            binsArray[index].frame = index++;
         }
 
         if (draggingItemIndex === 4) {
@@ -648,6 +670,7 @@ function createDialogBoxPart() {
         }
 
         draggingItemCreate(); //? създаваме предмета
+        groupItemsInWindow();
 
         canClick = true; //? с този boolean разрешаваме кликането върху прозореца
         dialogBoxCreated = false;
@@ -692,35 +715,35 @@ let recycledItem;
 
 let recycledItemWasCreated = false;
 
-function recycledCreateFunction () {
+function recycledCreateFunction() {
     recycledItem = recycledItemsGroup.create(0 + recycledItemPosIndex * 83, -100, 'recycled_items', recycledItemsFrame);
     recycledItem.body.gravity.y = 400;
     recycledItem.body.bounce.setTo(0, 0.5);
-    recycledItem.scale.setTo(0.8);      
+    recycledItem.scale.setTo(0.8);
 
     recycledItemsFrame++;
     recycledItemPosIndex++;
     recycledItemWasCreated = true;
 }
-function recycledCollideFunction () {
+function recycledCollideFunction() {
     if (recycledItemWasCreated) {
-        if (recycledItem.y > 20) { 
+        if (recycledItem.y > 20) {
             recycledItem.body.gravity.y = 200;
-        
+
             if (recycledItemsFrame >= 10) {
                 recycledItemCollideInterval.stop(); //? спираме проверката за позиция
             }
-        
+
             recycledItem.body.collideWorldBounds = true; //? разрешаваме сблъсъка на предмета с границите на играта
         }
     }
 }
 
-function recycledItemIntervalsCreate() {    
+function recycledItemIntervalsCreate() {
     recycledItemCreateInterval = game.time.create(false);
     recycledItemCreateInterval.loop(1000, recycledCreateFunction, this); //? на всяка секунда ще се появява нов падащ предмет 
     recycledItemCreateInterval.start();
-    
+
     recycledItemCollideInterval = game.time.create(false);
     recycledItemCollideInterval.loop(100, recycledCollideFunction, this); //? на всеки 100мс проверяваме позицията на предмета
     recycledItemCollideInterval.start();
@@ -789,7 +812,7 @@ function draggingAndDroppingItem() {
                     calmMusic.stop();
                     calmMusicIsPlaying = true; //? тук попречваме на спокойната мелодийка да се повтори отново
                     congratsMelody.play();
-                } 
+                }
                 else if (dudeKgs < dude2Kgs) {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nPlayer 2 collected ${(dude2Kgs - dudeKgs).toFixed(1)}kg.\ntrash more than Player 1.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
@@ -799,7 +822,7 @@ function draggingAndDroppingItem() {
                     calmMusic.stop();
                     calmMusicIsPlaying = true;
                     congratsMelody.play();
-                } 
+                }
                 else {
                     dialogBoxText.y += 60;
                     dialogBoxText.setText(`Game Over\n\nThe two players collected\nequal amounts of trash.\n\nTotal trash collected: ${(dudeKgs + dude2Kgs).toFixed(1)}kg.\nPress ESC to go back to\nthe welcome screen.`);
@@ -817,9 +840,12 @@ function draggingAndDroppingItem() {
             break;
     }
 
-    const dragItemYPosCheck = draggingItem.y >= 380 && draggingItem.y <= 420
+    const dragItemYPosCheck = draggingItem.y >= game.camera.y + 380 && draggingItem.y <= (game.camera.y + game.height)
+    // console.log('dragCheckYPos: ', dragItemYPosCheck);
+    // console.log('dragItemY: ', draggingItem.y);
+    // console.log('(game.camera.y + game.height) - 420', (game.camera.y + game.height) - 420);
 
-    if (dragItemYPosCheck && (draggingItem.x >= 200 && draggingItem.x <= 240)) {
+    if (dragItemYPosCheck && (draggingItem.x >= game.camera.x + 200 && draggingItem.x <= (game.camera.x + game.width) - 600)) {
         if (dragItemBinType === 'isForGreen') {
             dialogBoxText.setText("Correct!");
             dudePickupSound.play();
@@ -836,7 +862,7 @@ function draggingAndDroppingItem() {
             setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         }
     }
-    else if (dragItemYPosCheck && (draggingItem.x >= 396 && draggingItem.x <= 436)) {
+    else if (dragItemYPosCheck && (draggingItem.x >= game.camera.x + 396 && draggingItem.x <= (game.camera.x + game.width) - 400)) {
         if (dragItemBinType === 'isForYellow') {
             dialogBoxText.setText("Correct!");
             dudePickupSound.play();
@@ -853,7 +879,7 @@ function draggingAndDroppingItem() {
             setTimeout(() => { draggingIsDone = false; draggingItemCreate() }, 1200); //? започва отброяване до появата на следващия предмет
         }
     }
-    else if (dragItemYPosCheck && (draggingItem.x >= 592 && draggingItem.x <= 632)) {
+    else if (dragItemYPosCheck && (draggingItem.x >= game.camera.x + 592 && draggingItem.x <= (game.camera.x + game.width) - 200)) {
         if (dragItemBinType === 'isForBlue') {
             dialogBoxText.setText("Correct!");
             dudePickupSound.play();
@@ -872,27 +898,47 @@ function draggingAndDroppingItem() {
     }
 }
 
-function createCongratsText () {
-    congratsTextStyle = { font: "16px Tahoma ", fill: "#ED4335", fontWeight: "Italic"};
-    congratsText = game.add.text(game.width / 2, game.height / 2 - 135, "Look at all these recycled objects you have contributed making!", congratsTextStyle);
+function createCongratsText() {
+    congratsTextStyle = { font: "16px Tahoma ", fill: "#ED4335", fontWeight: "Italic" };
+    congratsText = game.add.text(game.camera.x + game.width / 2, game.camera.y + game.height / 2 - 135, "Look at all these recycled objects you have contributed making!", congratsTextStyle);
     congratsText.anchor.setTo(0.5);
 }
 
 function dialogWindow() {
     music1.stop()
     currentItem.kill(); //? преуверяваме се, че предметът изчезва
-    dialogBox = game.add.image(game.width / 2, -187, 'dialog_box');
+
+    dialogBox = game.add.image(game.camera.x + game.width / 2, game.camera.y - 187, 'dialog_box');
+    console.log('dialogbox created!!');
     dialogBox.anchor.setTo(0.5);
     let dialogBoxTween = game.add.tween(dialogBox).to({ y: '+475' }, 2000, Phaser.Easing.Linear.None, true);
     dialogBoxTween.onComplete.add(dialogWindowText, this);
-
+    // dialogBoxTween.onComplete.add(groupItemsInWindow, this);
+    
     windowFinishedTravelling = true;
     dialogBoxCreated = true;
+    // setTimeout(() => {
+    // }, 2000);
+}
+
+let windowGroup;
+
+function groupItemsInWindow() {
+    windowGroup = game.add.group();
+    windowGroup.add(dialogBox);
+    windowGroup.add(binsArray[0]);
+    windowGroup.add(binsArray[1]);
+    windowGroup.add(binsArray[2]);
+    windowGroup.add(dialogBoxText);
+    windowGroup.add(draggingItem);
+
+    // console.log(draggingItem);
+    // windowGroup.fixedToCamera = true;
 }
 
 function dialogWindowText() {
     dialogBoxTextStyle = { font: "24px Tahoma ", fill: "#ffffff" }; //? стила на текста
-    dialogBoxText = game.add.text(game.width / 2, 168, defWindowText, dialogBoxTextStyle); //? тук добавяме текст в заглавното меню
+    dialogBoxText = game.add.text(game.camera.x + game.width / 2, game.camera.y + 168, defWindowText, dialogBoxTextStyle); //? тук добавяме текст в заглавното меню
     dialogBoxText.anchor.setTo(0.5);
     dialogBoxText.align = 'center';
     dialogBoxText.alpha = 0;
@@ -901,9 +947,13 @@ function dialogWindowText() {
 
 function draggingItemCreate() {
     if (typeof (draggingItemIndex) !== "undefined") { //? ако индексът е с валиден тип, продължи създаването
-        draggingItem = game.add.sprite(game.width / 2, game.height / 2, 'recycle_items');
+        console.log('Dragging item created!');
+        console.log('game.width / 2 : ' + game.width / 2, 'game.height / 2 : ' + game.height / 2);
+        // console.log(game.camera.x, game.camera.y);
+        draggingItem = game.add.sprite(game.camera.x + game.width / 2, game.camera.y + game.height / 2, 'recycle_items');
         draggingItem.frame = draggingItemIndex;
         draggingItem.anchor.setTo(0.5);
+        //// draggingItem.fixedToCamera = true;
     }
 }
 
@@ -914,7 +964,7 @@ function createWelText() {
 
     copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
     copyrightText = game.add.text(18, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
-    
+
     let grd = welcomeText.context.createLinearGradient(0, 0, 0, welcomeText.height);
     //?  добавяме два цвята за граница
     grd.addColorStop(0, '#DCE35B');
@@ -936,7 +986,7 @@ function welcomeScreen() {
     recycledItemPosIndex = 0;
 
     gameHasCreatedEverything = false;
-    
+
     playtimeTimerEnded = false;
 
     dudeKgs = 0;
@@ -947,7 +997,7 @@ function welcomeScreen() {
     dialogBoxCreated = false;
 
     recycledItemsFrame = 0;
-    
+
     menuBackground = game.add.image(0, 0, 'menu_background');
 
     createWelText();
@@ -1020,19 +1070,19 @@ function startButtonEvent() {
         recycleLogo2.kill();
         menuBackground.kill()
         welcomeText.kill();
-    
+
         startButton.pendingDestroy = true; //? тук премахваме бутоните
-        helpButton.pendingDestroy = true; 
-        creditsButton.pendingDestroy = true; 
+        helpButton.pendingDestroy = true;
+        creditsButton.pendingDestroy = true;
     }
 }
 function helpButtonEvent() {
     inHelpScene = true;
     recycleLogo.kill();
     recycleLogo2.kill();
-    
+
     welcomeText.kill();
-    helpTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold', align: 'center'};
+    helpTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold', align: 'center' };
     helpText = game.add.text(game.width / 2, 220, helpTextContent, helpTextStyle);
     helpText.anchor.setTo(0.5);
 
@@ -1042,13 +1092,13 @@ function helpButtonEvent() {
     dude.angle = -50;
     dude.frame = 9;
     dude.animations.add('right', [8, 9, 10, 11], 5, true);
-    
+
     dude2 = game.add.sprite(game.width - 70, game.height - 70, 'dude_green_key');
     dude2.anchor.setTo(0.5);
     dude2.scale.setTo(1.3);
     dude2.frame = 7;
     dude2.animations.add('left', [4, 5, 6, 7], 5, true);
-    
+
     mushroom = game.add.sprite(111, 268, 'mushroom_key');
     mushroom.anchor.setTo(0.5);
     mushroom.height = 50;
@@ -1061,7 +1111,7 @@ function helpButtonEvent() {
     currentItem.frame = randomItemIndex; //! произволен предмет от спрайта
     currentItem.anchor.setTo(0.5);
     game.physics.arcade.enable(currentItem);
-    
+
     startButton.pendingDestroy = true; //? тук премахваме бутоните
     helpButton.pendingDestroy = true;
     creditsButton.pendingDestroy = true;
@@ -1070,9 +1120,9 @@ function creditsButtonEvent() {
     inCreditsScene = true;
     recycleLogo.kill();
     recycleLogo2.kill();
-    
+
     welcomeText.kill();
-    creditsTextStyle = { font: "30px Times New Roman ", fill: "#14A0F9", fontWeight: 'bold', align: 'center'};
+    creditsTextStyle = { font: "30px Times New Roman ", fill: "#14A0F9", fontWeight: 'bold', align: 'center' };
     creditsText = game.add.text(game.width / 2, game.height / 2 - 80, creditsTextContent, creditsTextStyle);
     creditsText.anchor.setTo(0.5);
 
@@ -1095,7 +1145,7 @@ function escButtonEvent() {
 function escButtonCleanup() {
     if (gameEnded) { //? Ако ESC бутона е натиснат след края на играта, да се изпълни следния код:
         recycledItemCreateInterval.stop(); //? спираме създаването на падащите елементи и проверката за позиция
-        recycledItemCollideInterval.stop(); 
+        recycledItemCollideInterval.stop();
 
         background.kill();
 
@@ -1113,7 +1163,7 @@ function escButtonCleanup() {
         masterVolButton.kill();
 
         congratsText.kill();
-        dialogBoxText.kill();        
+        dialogBoxText.kill();
     } else if (inHelpScene) {  //? ако е натиснат в "help" сцената
         helpText.kill();
         dude.kill();
@@ -1178,17 +1228,30 @@ function collisionHandler2(obj1, obj2) {
 }
 
 function clicksHandler() {
-    if (canClick && game.input.mousePointer.isDown && ((game.input.x >= game.width / 2 - 40 && game.input.x <= game.width / 2 + 40) && (game.input.y >= game.height / 2 - 40 && game.input.y <= game.height / 2 + 40))) {
+    if (canClick && game.input.mousePointer.isDown && 
+        ((game.input.x >= game.width / 2 - 40 && game.input.x <= game.width / 2 + 40) && 
+        (game.input.y >= game.height / 2 - 40 && game.input.y <= game.height / 2 + 40))) {
+
         clickedOnCenter = true;
     }
 
-    if (clickedOnCenter && canClick && game.input.mousePointer.isDown && ((game.input.x >= game.width / 2 - 210 && game.input.x <= game.width / 2 + 210) && (game.input.y >= game.height / 2 - 155 && game.input.y <= game.height / 2 + 155))) {
-        draggingItem.y = game.input.y
-        draggingItem.x = game.input.x
+    // console.log(clickedOnCenter);
+    // console.log(game.input.x);
+    console.log('camera y: ', game.camera.y, 'camera x: ', game.camera.x);
+
+    if (clickedOnCenter && canClick && game.input.mousePointer.isDown && 
+        ((game.input.x >= game.width / 2 - 210 && 
+            game.input.x <=  game.width / 2 + 210) && 
+            (game.input.y >= game.height / 2 - 155 && 
+                game.input.y <=  game.height / 2 + 155))) {
+
+        console.log('able to drag!'); //!! the following code doesn't execude
+        draggingItem.y = game.camera.y + game.input.y;
+        draggingItem.x = game.camera.x + game.input.x;
     }
     else if (canClick && !game.input.mousePointer.isDown) {
-        draggingItem.y = game.height / 2;
-        draggingItem.x = game.width / 2;
+        draggingItem.y = game.camera.y + game.height / 2;
+        draggingItem.x = game.camera.x + game.width / 2;
     }
 }
 
@@ -1224,7 +1287,7 @@ function createWelScreenButtons() {
 
     helpButton.onInputOver.add(helpButtonOver, this);
     helpButton.onInputOut.add(helpButtonOut, this);
-    
+
     creditsButton = game.add.button(game.width / 2, helpButton.y + 70, 'menu_buttons_sprite_key', creditsButtonEvent, this); creditsButton.frame = 0;
     creditsButton.scale.setTo(0.3)
     creditsButton.anchor.setTo(0.5)
