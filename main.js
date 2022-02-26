@@ -232,7 +232,11 @@ function signsInfoBoxCreate() {
     signsInfoBox.height = signsInfoBox.height / 2;
 
     const signsInfoBoxTextStyle = { font: "13px Bahnschrift", fill: "#ffffff", align: 'center' };
-    signsInfoBoxText = game.add.text(signsInfoBox.x, signsInfoBox.y - 50, "Go north-east to find the laundry shop.\nThere you can get a brush and clean\nyour dirty items before you give them\nfor recycling.", signsInfoBoxTextStyle);
+
+    const signsInfoBoxTextContent = player1Cleaned ? "Go west and put your cleaned items\ninto the recycling containers." : 
+    "Go north-east to find the laundry shop.\nThere you can get a brush and clean\nyour dirty items before you give them\nfor recycling.";
+
+    signsInfoBoxText = game.add.text(signsInfoBox.x, signsInfoBox.y - 50, signsInfoBoxTextContent, signsInfoBoxTextStyle);
     signsInfoBoxText.anchor.setTo(0.5)
 
     signsInfoBoxGroup.add(signsInfoBox);
@@ -270,7 +274,7 @@ function itemCleaning(itemIndexToClean) {
         }, 3000);
         return;
     }
-    if (itemIndexToClean === 4) {
+    if (itemIndexToClean === 4 || itemIndexToClean === 8) {
         itemCleaning(itemIndexToClean + 1);
         return;
     }
@@ -302,6 +306,9 @@ function cleaningPart() {
     playerMovementBlocked = true;
     dude2.body.velocity.x = 0;
     dude2.body.velocity.y = 0;
+    dude.body.velocity.x = 0;
+    dude.body.velocity.y = 0;
+    dude.animations.stop()
     dude2.animations.stop()
 
     cleaningBoxGroup = game.add.group();
@@ -335,18 +342,50 @@ function cleaningPart() {
     // const cursorProperty = document.getElementsByTagName("canvas").style.border = "5px solid black"
 }
 
+let dialogWindowCreated = false;
+
 function update() {
-    if (brushPicked && (dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) {
+    if (recycledItemWasCreated) {
+        game.physics.arcade.collide(recycledItemsGroup, floorHitBody);
+        console.log('collides!');
+    }
+
+    if (gameHasCreatedEverything && !dialogBoxCreated && !dialogWindowCreated) {
+        game.physics.arcade.collide(dude, binsArray[0]);
+        game.physics.arcade.collide(dude2, binsArray[0]);
+        game.physics.arcade.collide(dude, binsArray[1]);
+        game.physics.arcade.collide(dude2, binsArray[1]);
+        game.physics.arcade.collide(dude, binsArray[2]);
+        game.physics.arcade.collide(dude2, binsArray[2]);
+
+        if (player1Cleaned && (((dude2.x >= 133 && dude2.x <= 320) && (dude2.y >= 796 && dude2.y <= 864)) || 
+        ((dude.x >= 133 && dude.x <= 320) && (dude.y >= 796 && dude.y <= 864)))) {
+            dialogWindow();
+            dialogWindowCreated = true;
+
+            playerMovementBlocked = true;
+            dude2.body.velocity.x = 0;
+            dude2.body.velocity.y = 0;
+            dude.body.velocity.x = 0;
+            dude.body.velocity.y = 0;
+            console.log('dialog created!');
+        }
+    }
+
+    if (brushPicked && (((dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) || 
+    ((dude.x >= 1529 && dude.x <= 1545) && (dude.y >= 156 && dude.y <= 179)))) {
         cleaningPart();
         brushPicked = false;
     }
 
-    if (playtimeTimerEnded && (dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) {
+    if (playtimeTimerEnded && (((dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) || 
+    ((dude.x >= 1785 && dude.x <= 1800) && (dude.y >= 156 && dude.y <= 166)))) {
         brush.kill();
         brushPicked = true;
     }
 
-    if (!bubbleAppeared && pathUnblocked && (dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159)) {
+    if (!bubbleAppeared && pathUnblocked && (((dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159)) || 
+    ((dude.x >= 588 && dude.x <= 1115) && (dude.y >= 832 && dude.y <= 1159)))) {
         // console.log(dude2.x);
         warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
         bubbleAppeared = true;
@@ -375,13 +414,15 @@ function update() {
             }
         }
 
-        if (!((dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159))) {
+        if (!(((dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159)) || 
+        ((dude.x >= 588 && dude.x <= 1115) && (dude.y >= 832 && dude.y <= 1159)))) {
             warningBubble.alpha = 0;
         } else {
             warningBubble.alpha = 1;
         }
 
-        if ((dude2.x >= 914 && dude2.x <= 974) && (dude2.y >= 1020 && dude2.y <= 1022)) {
+        if (((dude2.x >= 914 && dude2.x <= 974) && (dude2.y >= 1020 && dude2.y <= 1022)) || 
+        ((dude.x >= 914 && dude.x <= 974) && (dude.y >= 1020 && dude.y <= 1022))) {
             warningBubble.alpha = 0;
             if (!signsInfoBoxAppeared) {
                 signsInfoBoxCreate();
@@ -409,7 +450,8 @@ function update() {
         game.physics.arcade.collide(recycledItemsGroup, recycledItemsGroup);
     }
 
-    if (canClick && !draggingIsDone) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
+    if (canClick && !draggingIsDone && dragItemCreated) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
+        console.log(dialogBoxText);
         draggingAndDroppingItem();
         // if (!groupedItemsInWindow) {
         // groupItemsInWindow();
@@ -445,7 +487,10 @@ function update() {
         if (timeElapsed >= totalTime && !windowFinishedTravelling && !playtimeTimerEnded) { //? ако времето на главния таймер е изтекло, зануляваме текста и преминаваме към следващата фаза на играта
             text3.setText("00:00")
             playtimeTimerEnded = true;
-
+            
+            mushroom.kill();
+            currentItem.kill();
+            
             // dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
             // dude.body.velocity.x = 0;
             // dude2.body.velocity.y = 0;
@@ -454,9 +499,11 @@ function update() {
             // dude2.animations.stop()
 
             console.log('playtime ended!');
-
+            
             game.camera.fade(null, 1000)
             setTimeout(() => {
+                dudeKgs > dude2Kgs ? game.camera.follow(dude) : game.camera.follow(dude2);
+                
                 game.camera.fadeIn(null, 1000)
                 blockLog.kill();
                 pathUnblocked = true;
@@ -556,7 +603,7 @@ const createMap = function () {
     map.createLayer('Layer 2')
 
     map.setCollisionByExclusion([])
-    game.physics.enable(groundLayer);
+    // game.physics.enable(groundLayer);
 }
 
 const createPlayers = function () {
@@ -579,8 +626,8 @@ const createPlayers = function () {
     game.physics.enable(dude);
     game.physics.enable(dude2);
 
-    game.camera.follow(dude);
-    game.camera.follow(dude2);
+    // game.camera.follow(dude);
+    // game.camera.follow(dude2);
 
     game.world.setBounds(0, 0, 1984, 1632);
 
@@ -601,6 +648,9 @@ function render() {
     // if (gameHasStarted) {
     //     game.debug.body(dude2);
     // }
+    if (recycledItemWasCreated) {
+        game.debug.body(floorHitBody);
+    }
 }
 
 const createItems = function () {
@@ -826,6 +876,19 @@ function createPlayablePart() {
     mushTimerSpawn.loop(26000, mushroomCreate, this);
     mushTimerSpawn.start();
 
+    let index = 0;
+    for (let x = 175; x <= 290; x += 50) {
+        binsArray[index] = game.add.sprite(x, 796, 'bins')
+        binsArray[index].anchor.setTo(0.5);
+        binsArray[index].scale.setTo(1.2);
+        binsArray[index].frame = index++;
+    }
+
+    binsArray.map((bin) => {
+        game.physics.enable(bin);
+        bin.body.immovable = true;
+        bin.shadow 
+    });
 
     mushTimerDestroy = game.time.create(false);
     mushTimerDestroy.loop(6000, mushroomsKill, this);
@@ -881,16 +944,19 @@ function createDialogBoxPart() {
     dude2.animations.stop();
 
     console.log('dialogBox.y: ', dialogBox.y);
+    console.log(game.camera.y + game.height / 2);
 
-    if (dialogBox.y >= game.camera.y + 288) {
+    if (dialogBox.y >= 792) {
         let index = 0;
         for (let i = 220; i <= 612; i += 196) { //? създаваме 3те кошчета
-            binsArray[index] = game.add.sprite(game.camera.x + i, game.camera.y + 410, 'bins');
+            binsArray[index] = game.add.sprite(game.camera.x + i, game.camera.y + game.height / 2 + 120, 'bins');
             // windowGroup.add(bins);
             binsArray[index].anchor.setTo(0.5);
             binsArray[index].scale.setTo(2);
             binsArray[index].alpha = 0;
-            game.add.tween(binsArray[index]).to({ alpha: 1 }, 0, "Linear", true, 0);
+            if (windowFinishedTravelling) {
+                game.add.tween(binsArray[index]).to({ alpha: 1 }, 0, "Linear", true, 0);
+            }
             binsArray[index].frame = index++;
         }
 
@@ -899,9 +965,9 @@ function createDialogBoxPart() {
         }
 
         draggingItemCreate(); //? създаваме предмета
-        groupItemsInWindow();
+        // groupItemsInWindow();
 
-        canClick = true; //? с този boolean разрешаваме кликането върху прозореца
+        // canClick = true; //? с този boolean разрешаваме кликането върху прозореца
         dialogBoxCreated = false;
     }
 }
@@ -945,7 +1011,7 @@ let recycledItem;
 let recycledItemWasCreated = false;
 
 function recycledCreateFunction() {
-    recycledItem = recycledItemsGroup.create(0 + recycledItemPosIndex * 83, -100, 'recycled_items', recycledItemsFrame);
+    recycledItem = recycledItemsGroup.create(game.camera.x + recycledItemPosIndex * 83, game.camera.y - 100, 'recycled_items', recycledItemsFrame);
     recycledItem.body.gravity.y = 400;
     recycledItem.body.bounce.setTo(0, 0.5);
     recycledItem.scale.setTo(0.8);
@@ -964,6 +1030,7 @@ function recycledCollideFunction() {
             }
 
             recycledItem.body.collideWorldBounds = true; //? разрешаваме сблъсъка на предмета с границите на играта
+            
         }
     }
 }
@@ -978,31 +1045,47 @@ function recycledItemIntervalsCreate() {
     recycledItemCollideInterval.start();
 }
 
+let hitFloor;
+let floorHitBody;
 
 function recycledItemsFalling() {
     recycledItemsGroup = game.add.group();
     recycledItemsGroup.enableBody = true;
     recycledItemsGroup.physicsBodyType = Phaser.Physics.ARCADE;
-
+    
     //? създаваме маска, която ще показва обектите само когато са извън статус полето (при падане)
-    let mask = game.add.graphics(0, 0);
+    let mask = game.add.graphics(game.camera.x, game.camera.y);
     mask.width = game.width;
     mask.height = 35;
 
     recycledItemIntervalsCreate();
 
-    mask.drawRect(0, 35, game.width, game.height - 35);
+    // hitFloor = new Phaser.Rectangle(0, game.camera.y + 500, game.width, 50);
+    // game.physics.arcade.enable(hitFloor);
+    // hitFloor.immovable = true;
 
+    floorHitBody = game.add.sprite(0, game.camera.y + game.height, 'block');
+    game.physics.enable(floorHitBody);
+    floorHitBody.body.immovable = true;
+    // floorHitBody.body.setSize(game.width, 50, 0, 0);
+    
+    mask.drawRect(0, 35, game.width, game.height - 35);
+    
     //? ако искаме предметите да не се показат пред диалоговия прозорец
     //// mask.drawRect(0, 35, game.width / 2 - 250, game.height - 35);
     //// mask.drawRect(game.width / 2 - 250, 35, 500, game.height / 2 - 223);
     //// mask.drawRect(game.width / 2 + 250, 35, game.width / 2 - 250, game.height - 35);
     //// mask.drawRect(game.width / 2 - 250, game.height / 2 + 187, 500, 500);
-
+    
     //? прилагаме маската към всички елементи на групата
     recycledItemsGroup.mask = mask;
 }
 
+function render () {
+
+    game.debug.geom(hitFloor,'#0fffff');
+
+}
 function draggingAndDroppingItem() {
     if (draggingItemIndex === 0 && !calmMusicIsPlaying) {
         calmMusic.play();
@@ -1144,13 +1227,14 @@ function dialogWindow() {
     dialogBoxTween.onComplete.add(dialogWindowText, this);
     // dialogBoxTween.onComplete.add(groupItemsInWindow, this);
 
-    windowFinishedTravelling = true;
-    dialogBoxCreated = true;
+    // windowFinishedTravelling = true;
+    // dialogBoxCreated = true;
     // setTimeout(() => {
     // }, 2000);
 }
 
 let windowGroup;
+let dragItemCreated = false;
 
 function groupItemsInWindow() {
     windowGroup = game.add.group();
@@ -1165,13 +1249,19 @@ function groupItemsInWindow() {
     // windowGroup.fixedToCamera = true;
 }
 
-function dialogWindowText() {
+function dialogWindowText() {    
     dialogBoxTextStyle = { font: "24px Tahoma ", fill: "#ffffff" }; //? стила на текста
-    dialogBoxText = game.add.text(game.camera.x + game.width / 2, game.camera.y + 168, defWindowText, dialogBoxTextStyle); //? тук добавяме текст в заглавното меню
+    dialogBoxText = game.add.text(game.camera.x + game.width / 2, game.camera.y + 168, defWindowText, dialogBoxTextStyle);
     dialogBoxText.anchor.setTo(0.5);
     dialogBoxText.align = 'center';
     dialogBoxText.alpha = 0;
     game.add.tween(dialogBoxText).to({ alpha: 1 }, 0, "Linear", true, 0);
+    canClick = true;
+
+    windowFinishedTravelling = true;
+    dialogBoxCreated = true;
+
+    console.log(dialogBoxText);
 }
 
 function draggingItemCreate() {
@@ -1182,6 +1272,8 @@ function draggingItemCreate() {
         draggingItem = game.add.sprite(game.camera.x + game.width / 2, game.camera.y + game.height / 2, 'recycle_items');
         draggingItem.frame = draggingItemIndex;
         draggingItem.anchor.setTo(0.5);
+
+        dragItemCreated = true;
         //// draggingItem.fixedToCamera = true;
     }
 }
@@ -1210,8 +1302,8 @@ function welcomeScreen() {
     gameHasFinished = false;
     gameHasStarted = false;
 
-    P1FinishedProcess = false;
-    draggingItemIndex = 0;
+    P1FinishedProcess = true;
+    draggingItemIndex = 15;
     recycledItemPosIndex = 0;
 
     gameHasCreatedEverything = false;
@@ -1466,7 +1558,7 @@ function clicksHandler() {
 
     // console.log(clickedOnCenter);
     // console.log(game.input.x);
-    console.log('dude2 x: ', dude2.x, 'dude2 y: ', dude2.y);
+    // console.log('dude2 x: ', dude2.x, 'dude2 y: ', dude2.y);
 
     if (clickedOnCenter && canClick && game.input.mousePointer.isDown &&
         ((game.input.x >= game.width / 2 - 210 &&
