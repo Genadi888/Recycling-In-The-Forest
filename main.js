@@ -51,6 +51,9 @@ let calmMusicIsPlaying = false;
 
 let mushroom;
 
+let blockLog;
+let warningBubble;
+
 let background;
 
 const game = new Phaser.Game(
@@ -162,7 +165,7 @@ let windowFinishedTravelling = false;
 
 
 function preload() {
-    game.load.tilemap('tilemap', './tilemap/forest_place_large.json', null, Phaser.Tilemap.TILED_JSON) //зареждаме картата
+    game.load.tilemap('tilemap', './tilemap/forest_place.json', null, Phaser.Tilemap.TILED_JSON) //зареждаме картата
     game.load.image('grass', './images/grass_background.png');
     game.load.spritesheet('dude_key', './images/red_dude.png', 272 / 4, 288 / 4);
     game.load.spritesheet('dude_green_key', './images/green_dude.png', 272 / 4, 288 / 4);
@@ -179,6 +182,8 @@ function preload() {
     game.load.image('recycle_logo', './images/recycle_logo.png');
     game.load.image('dialog_box', './images/dialog_box.png');
     game.load.image('grass_objects_key', './images/tiles.png');
+    game.load.image('block_log_key', './images/block_log.png');
+    game.load.image('warning_bubble_key', './images/warning_bubble.png');
     game.load.audio('pickup_sound', './audio/pickup_sound.wav');
     game.load.audio('powUp_sound', './audio/powup_sound.wav');
     game.load.audio('plant_music', './audio/plant_music.mp3');
@@ -189,7 +194,7 @@ function preload() {
 function render() {
     // if (gameHasStarted) {
     //     game.debug.body(dude);
-    //     game.debug.body(dude2);
+        // game.debug.body(dude2);
     //     game.debug.body(groundLayer);
 
     // }
@@ -202,13 +207,64 @@ function create() {
 let recycledItemsFrame = 0;
 let groupedItemsInWindow = 0;
 
+let dude2IsFollowed = true;
+let pathUnblocked = false;
+let bubbleAppeared = false;
+
+let bubbleTravelled = false;
+
+
 function update() {
+
+    if (!bubbleAppeared && pathUnblocked && (dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159)) {
+        console.log(dude2.x);
+        warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
+        bubbleAppeared = true;
+    }
+
+    if (bubbleAppeared) {
+        // const bubbleTween = game.add.tween(warningBubble).to({ y: 900 }, 2000, Phaser.Easing.Bounce.Out, true);
+        // bubbleTween.onComplete.add(() => {
+        //     // game.add.tween(warningBubble).to({ y: 940 }, 1000, Phaser.Easing.Linear.None, true);
+        // }, this);
+
+        if (!bubbleTravelled && warningBubble.y >= 930) {
+            warningBubble.y -= 0.2;
+            console.log(warningBubble.y);
+
+            if (warningBubble.y <= 930) {
+                bubbleTravelled = true;
+            }
+        }
+        if (bubbleTravelled) {
+            warningBubble.y += 0.2;
+            console.log(warningBubble.y);
+
+            if (warningBubble.y >= 940) {
+                bubbleTravelled = false;
+            }
+        }
+        
+        if (!((dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159))) {
+            warningBubble.alpha = 0;
+        } else {
+            warningBubble.alpha = 1;
+        }
+        
+        if ((dude2.x >= 914 && dude2.x <= 974) && (dude2.y >= 1020 && dude2.y <= 1022)) {
+            warningBubble.alpha = 0;
+            
+        } else {
+            
+        }
+    }
+
 
     if (inHelpScene) {
         dude.animations.play('right');
         dude2.animations.play('left');
     }
-
+    
     if (recycledItemsFrame >= 10) { //? ако всички рециклирани предмети в спрайта са се изредили, не създавай повече предмети
         recycledItemCreateInterval.stop();
     }
@@ -216,29 +272,29 @@ function update() {
     if (gameEnded) { //? тук рециклираните отпадъци може да се блъскат взаимно
         game.physics.arcade.collide(recycledItemsGroup, recycledItemsGroup);
     }
-
+    
     if (canClick && !draggingIsDone) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
         draggingAndDroppingItem();
         // if (!groupedItemsInWindow) {
             // groupItemsInWindow();
-        //     groupedItemsInWindow = true;
-        // }
-    }
-
-    if (dialogBoxCreated) {
-        createDialogBoxPart();
-    }
-
-    if (!gameHasStarted) {
-        recycleLogo.angle += 1;
-        recycleLogo2.angle += 1;
-    }
-
-    if (gameHasStarted) {
+            //     groupedItemsInWindow = true;
+            // }
+        }
+        
+        if (dialogBoxCreated) {
+            createDialogBoxPart();
+        }
+        
+        if (!gameHasStarted) {
+            recycleLogo.angle += 1;
+            recycleLogo2.angle += 1;
+        }
+        
+        if (gameHasStarted) {
         if (!gameHasCreatedEverything) {
             createPlayablePart();
         }
-
+        
         // masterVolButton.y = game.camera.y
         // masterVolButton.x = game.camera.x
 
@@ -254,18 +310,26 @@ function update() {
             text3.setText("00:00")
             playtimeTimerEnded = true;
 
-            dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
-            dude.body.velocity.x = 0;
-            dude2.body.velocity.y = 0;
-            dude2.body.velocity.x = 0;
-            dude.animations.stop()
-            dude2.animations.stop()
+            // dude.body.velocity.y = 0; //? забраняваме движението на играчите и спираме анимациите
+            // dude.body.velocity.x = 0;
+            // dude2.body.velocity.y = 0;
+            // dude2.body.velocity.x = 0;
+            // dude.animations.stop()
+            // dude2.animations.stop()
 
             console.log('playtime ended!');
 
+            game.camera.fade(null, 1000)
             setTimeout(() => {
-                dialogWindow();
-            }, 1000);
+                game.camera.fadeIn(null, 1000)
+                blockLog.kill();
+                pathUnblocked = true;
+            }, 3000);
+            // game.camera.onFadeComplete.add(() => , this);
+
+            // setTimeout(() => {
+            //    dialogWindow();
+            // }, 1000);
         }
 
         if (game.physics.arcade.collide(dude, groundLayer) == true) {
@@ -287,10 +351,12 @@ function update() {
 
         game.scale.refresh();
         game.physics.arcade.collide(dude, dude2)
+        game.physics.arcade.collide(dude, blockLog)
+        game.physics.arcade.collide(dude2, blockLog)
 
         itemCollect(); //? с тази функция отпадъците се взимат
 
-        if (!playtimeTimerEnded) { //? ако времето на таймера свърши, забрани движението
+        { //? ако времето на таймера свърши, забрани движението
             if (cursors.up.isDown) {
                 dude.body.velocity.y = - dude1VelY;
                 dude.body.velocity.x = 0;
@@ -349,10 +415,11 @@ function update() {
 const createMap = function () {
     map = game.add.tilemap('tilemap') //? създаваме я като променлива, името го взимаме от load
     map.addTilesetImage('shop_stuff', 'tileset') //? първото е името на tileset-а (намира се в .json файла), второто ключа на image.png
-    map.addTilesetImage('grass_objects', 'grass_objects_key')
     // map.createLayer('uncollidable layer')
     groundLayer = map.createLayer('Layer 1') //? кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
     map.createLayer('Layer 2')
+
+    //TODO: I need to make the camera not see after end trees
 
     map.setCollisionByExclusion([])
     game.physics.enable(groundLayer);
@@ -366,7 +433,7 @@ const createPlayers = function () {
     dude.animations.add('right', [8, 9, 10, 11], 5, true);
     dude.animations.add('up', [12, 13, 14, 15], 5, true);
     dude.animations.add('down', [0, 1, 2, 3], 5, true);
-
+    
     dude2 = game.add.sprite(game.width / 2 - 35, game.height / 2, 'dude_green_key');
     dude2.anchor.setTo(0.5);
     dude2.frame = 6;
@@ -374,19 +441,32 @@ const createPlayers = function () {
     dude2.animations.add('right', [8, 9, 10, 11], 5, true);
     dude2.animations.add('up', [12, 13, 14, 15], 5, true);
     dude2.animations.add('down', [0, 1, 2, 3], 5, true);
-
+    
     game.physics.enable(dude);
     game.physics.enable(dude2);
-
+    
     game.camera.follow(dude);
     game.camera.follow(dude2);
-
-    game.world.setBounds(0, 0, game.width * 4, game.height * 4);
-
+    
+    game.world.setBounds(0, 0, 1984, 1632);
+    
     dude.body.collideWorldBounds = true;
     dude2.body.collideWorldBounds = true;
-
+    
     game.physics.arcade.collide(dude, dude2);
+
+    //?  This adjusts the collision body size to be a 100x50 box.
+    //?  50, 25 is the X and Y offset of the newly sized box.
+    
+    dude.body.setSize(47, 53, 9, 8);
+    dude2.body.setSize(47, 53, 9, 8);
+}
+
+function render() {
+    // game.debug.cameraInfo(game.camera, 32, 32);
+    // if (gameHasStarted) {
+    //     game.debug.body(dude2);
+    // }
 }
 
 const createItems = function () {
@@ -585,6 +665,7 @@ function increaseMasterVolume() {
         volumeText.setText((game.sound.volume * 100).toFixed(0) + "%");
     }
 }
+
 let statusBarGroup;
 
 function createPlayablePart() {
@@ -628,13 +709,17 @@ function createPlayablePart() {
     masterVolButton.onInputOver.add(masterVolButtonOver, this);
     masterVolButton.onInputOut.add(masterVolButtonOut, this);
 
+    blockLog = game.add.sprite(544, 540, 'block_log_key');
+    game.physics.arcade.enable(blockLog);
+    blockLog.body.immovable = true;
+
     startTime = new Date();
-    totalTime = 10; //? секундите за таймера
+    totalTime = 2; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
 
     groupStatusBar();
-    playtimeTimer = game.time.events.loop(100, function () {
+    playtimeTimer = game.time.events.loop(100, () => {
         updatePlaytimeTimer();
     });
 
@@ -1237,7 +1322,7 @@ function clicksHandler() {
 
     // console.log(clickedOnCenter);
     // console.log(game.input.x);
-    console.log('camera y: ', game.camera.y, 'camera x: ', game.camera.x);
+    console.log('dude2 x: ', dude2.x, 'dude2 y: ', dude2.y);
 
     if (clickedOnCenter && canClick && game.input.mousePointer.isDown && 
         ((game.input.x >= game.width / 2 - 210 && 
