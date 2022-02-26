@@ -184,6 +184,8 @@ function preload() {
     game.load.image('grass_objects_key', './images/tiles.png');
     game.load.image('block_log_key', './images/block_log.png');
     game.load.image('warning_bubble_key', './images/warning_bubble.png');
+    game.load.image('brush_key', './images/cleaning_brush.png');
+    game.load.image('steve_key', './images/steve.png');
     game.load.audio('pickup_sound', './audio/pickup_sound.wav');
     game.load.audio('powUp_sound', './audio/powup_sound.wav');
     game.load.audio('plant_music', './audio/plant_music.mp3');
@@ -194,7 +196,7 @@ function preload() {
 function render() {
     // if (gameHasStarted) {
     //     game.debug.body(dude);
-        // game.debug.body(dude2);
+    // game.debug.body(dude2);
     //     game.debug.body(groundLayer);
 
     // }
@@ -212,12 +214,140 @@ let pathUnblocked = false;
 let bubbleAppeared = false;
 
 let bubbleTravelled = false;
+let signsInfoBoxAppeared = false;
+let signsInfoBox;
 
+let signsInfoBoxGroup;
+let signsInfoBoxText;
+
+let brushPicked = false;
+let playerMovementBlocked = false;
+
+function signsInfoBoxCreate() {
+    signsInfoBoxGroup = game.add.group();
+
+    signsInfoBox = game.add.sprite(940, 940, 'dialog_box');
+    signsInfoBox.anchor.setTo(0.5, 1);
+    signsInfoBox.scale.setTo(0.5);
+    signsInfoBox.height = signsInfoBox.height / 2;
+
+    const signsInfoBoxTextStyle = { font: "13px Bahnschrift", fill: "#ffffff", align: 'center' };
+    signsInfoBoxText = game.add.text(signsInfoBox.x, signsInfoBox.y - 50, "Go north-east to find the laundry shop.\nThere you can get a brush and clean\nyour dirty items before you give them\nfor recycling.", signsInfoBoxTextStyle);
+    signsInfoBoxText.anchor.setTo(0.5)
+
+    signsInfoBoxGroup.add(signsInfoBox);
+    signsInfoBoxGroup.add(signsInfoBoxText);
+
+    signsInfoBoxAppeared = true;
+}
+
+let cleaningBox;
+let cleaningBoxText;
+let cleaningBoxGroup;
+let itemToClean;
+let player1Cleaned = false;
+
+function itemCleaning(itemIndexToClean) {
+    if (itemIndexToClean > 15) {
+        if (player1Cleaned) {
+            cleaningBoxText.setText("You cleaned them all!\nNow you may recycle the items.");
+            setTimeout(() => {
+                cleaningBoxGroup.kill();  //? край на почистването
+                playerMovementBlocked = false;
+                game.canvas.style.cursor = "default";
+            }, 3000);
+            return;
+        }
+
+        cleaningBoxText.setText("You cleaned them all!\nNow it's your opponent's turn.");
+        setTimeout(() => {
+            player1Cleaned = true;
+            cleaningBoxText.setText("Click on the item to clean it")
+            setTimeout(() => {
+                cleaningBoxText.setText("")
+            }, 3000);
+            itemCleaning(0); //? започни отначало
+        }, 3000);
+        return;
+    }
+    if (itemIndexToClean === 4) {
+        itemCleaning(itemIndexToClean + 1);
+        return;
+    }
+
+    itemToClean = game.add.sprite(game.camera.x + game.width / 2, game.camera.y + game.height / 2, 'recycle_items');
+    itemToClean.anchor.setTo(0.5);
+    itemToClean.scale.setTo(2);
+
+    cleaningBoxGroup.add(itemToClean);
+
+    const tintValuesCopy = tintValuesArray.slice();
+    itemToClean.frame = itemIndexToClean;
+    itemToClean.tint = tintValuesCopy.shift();
+    itemToClean.inputEnabled = true;
+
+    itemToClean.events.onInputDown.add(() => {
+        itemToClean.tint = tintValuesCopy.shift();
+        if (tintValuesCopy.length <= 0) {
+            itemToClean.kill();
+            itemCleaning(itemIndexToClean + 1);
+            return;
+        }
+    }, this);
+}
+
+const tintValuesArray = [0x313131, 0x3D3D3D, 0x4C4C4C, 0x5F5F5F, 0xffffff]
+
+function cleaningPart() {
+    playerMovementBlocked = true;
+    dude2.body.velocity.x = 0;
+    dude2.body.velocity.y = 0;
+    dude2.animations.stop()
+
+    cleaningBoxGroup = game.add.group();
+
+    cleaningBox = game.add.sprite(game.camera.x + game.width / 2, game.camera.y + game.height / 2, 'dialog_box');
+    cleaningBox.anchor.setTo(0.5);
+    cleaningBoxGroup.add(cleaningBox);
+
+    cleaningBoxText = game.add.text(cleaningBox.x, cleaningBox.y - 150, "Click on the item to clean it", 
+    { font: "24px Bahnschrift", fill: "#FFFFFF", align: "center" })
+    cleaningBoxText.anchor.setTo(0.5, 0)
+    cleaningBoxGroup.add(cleaningBoxText);
+    
+    setTimeout(() => {
+        cleaningBoxText.setText("");
+    }, 3000);
+
+    itemCleaning(0); //? като параметър даваме индекс на предмета за почистване
+    
+    game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
+
+    // document.getElementsByTagName().style.cursor = "pointer";
+
+
+    // game.canvas.style.cursor = "grabbing"
+
+    // const tableElement = document.querySelector('#canvas');
+    // const tableStyle = getComputedStyle(tableElement);
+    // const tableOpacity = parseFloat(tableStyle.opacity);
+    // tableElement.style.cursor = "url(images/cleaning_brush_cursor.png), auto";
+    // const cursorProperty = document.getElementsByTagName("canvas").style.border = "5px solid black"
+}
 
 function update() {
+    if (brushPicked && (dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) {
+        cleaningPart();
+        brushPicked = false;
+    }
+
+    if (playtimeTimerEnded && (dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) {
+        brush.kill();
+        brushPicked = true;
+    }
 
     if (!bubbleAppeared && pathUnblocked && (dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159)) {
-        console.log(dude2.x);
+        // console.log(dude2.x);
         warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
         bubbleAppeared = true;
     }
@@ -230,7 +360,7 @@ function update() {
 
         if (!bubbleTravelled && warningBubble.y >= 930) {
             warningBubble.y -= 0.2;
-            console.log(warningBubble.y);
+            // console.log(warningBubble.y);
 
             if (warningBubble.y <= 930) {
                 bubbleTravelled = true;
@@ -238,24 +368,30 @@ function update() {
         }
         if (bubbleTravelled) {
             warningBubble.y += 0.2;
-            console.log(warningBubble.y);
+            // console.log(warningBubble.y);
 
             if (warningBubble.y >= 940) {
                 bubbleTravelled = false;
             }
         }
-        
+
         if (!((dude2.x >= 588 && dude2.x <= 1115) && (dude2.y >= 832 && dude2.y <= 1159))) {
             warningBubble.alpha = 0;
         } else {
             warningBubble.alpha = 1;
         }
-        
+
         if ((dude2.x >= 914 && dude2.x <= 974) && (dude2.y >= 1020 && dude2.y <= 1022)) {
             warningBubble.alpha = 0;
-            
+            if (!signsInfoBoxAppeared) {
+                signsInfoBoxCreate();
+            }
         } else {
-            
+            // warningBubble.alpha = 1;
+            if (signsInfoBoxAppeared) {
+                signsInfoBoxGroup.kill()
+                signsInfoBoxAppeared = false;
+            }
         }
     }
 
@@ -264,7 +400,7 @@ function update() {
         dude.animations.play('right');
         dude2.animations.play('left');
     }
-    
+
     if (recycledItemsFrame >= 10) { //? ако всички рециклирани предмети в спрайта са се изредили, не създавай повече предмети
         recycledItemCreateInterval.stop();
     }
@@ -272,29 +408,29 @@ function update() {
     if (gameEnded) { //? тук рециклираните отпадъци може да се блъскат взаимно
         game.physics.arcade.collide(recycledItemsGroup, recycledItemsGroup);
     }
-    
+
     if (canClick && !draggingIsDone) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
         draggingAndDroppingItem();
         // if (!groupedItemsInWindow) {
-            // groupItemsInWindow();
-            //     groupedItemsInWindow = true;
-            // }
-        }
-        
-        if (dialogBoxCreated) {
-            createDialogBoxPart();
-        }
-        
-        if (!gameHasStarted) {
-            recycleLogo.angle += 1;
-            recycleLogo2.angle += 1;
-        }
-        
-        if (gameHasStarted) {
+        // groupItemsInWindow();
+        //     groupedItemsInWindow = true;
+        // }
+    }
+
+    if (dialogBoxCreated) {
+        createDialogBoxPart();
+    }
+
+    if (!gameHasStarted) {
+        recycleLogo.angle += 1;
+        recycleLogo2.angle += 1;
+    }
+
+    if (gameHasStarted) {
         if (!gameHasCreatedEverything) {
             createPlayablePart();
         }
-        
+
         // masterVolButton.y = game.camera.y
         // masterVolButton.x = game.camera.x
 
@@ -356,7 +492,7 @@ function update() {
 
         itemCollect(); //? с тази функция отпадъците се взимат
 
-        { //? ако времето на таймера свърши, забрани движението
+        if (!playerMovementBlocked) { //? ако времето на таймера свърши, забрани движението
             if (cursors.up.isDown) {
                 dude.body.velocity.y = - dude1VelY;
                 dude.body.velocity.x = 0;
@@ -419,8 +555,6 @@ const createMap = function () {
     groundLayer = map.createLayer('Layer 1') //? кой леър искам да нарисувам, пъврият винаги ще се сблъсква с човечето
     map.createLayer('Layer 2')
 
-    //TODO: I need to make the camera not see after end trees
-
     map.setCollisionByExclusion([])
     game.physics.enable(groundLayer);
 }
@@ -433,7 +567,7 @@ const createPlayers = function () {
     dude.animations.add('right', [8, 9, 10, 11], 5, true);
     dude.animations.add('up', [12, 13, 14, 15], 5, true);
     dude.animations.add('down', [0, 1, 2, 3], 5, true);
-    
+
     dude2 = game.add.sprite(game.width / 2 - 35, game.height / 2, 'dude_green_key');
     dude2.anchor.setTo(0.5);
     dude2.frame = 6;
@@ -441,23 +575,23 @@ const createPlayers = function () {
     dude2.animations.add('right', [8, 9, 10, 11], 5, true);
     dude2.animations.add('up', [12, 13, 14, 15], 5, true);
     dude2.animations.add('down', [0, 1, 2, 3], 5, true);
-    
+
     game.physics.enable(dude);
     game.physics.enable(dude2);
-    
+
     game.camera.follow(dude);
     game.camera.follow(dude2);
-    
+
     game.world.setBounds(0, 0, 1984, 1632);
-    
+
     dude.body.collideWorldBounds = true;
     dude2.body.collideWorldBounds = true;
-    
+
     game.physics.arcade.collide(dude, dude2);
 
     //?  This adjusts the collision body size to be a 100x50 box.
     //?  50, 25 is the X and Y offset of the newly sized box.
-    
+
     dude.body.setSize(47, 53, 9, 8);
     dude2.body.setSize(47, 53, 9, 8);
 }
@@ -667,6 +801,8 @@ function increaseMasterVolume() {
 }
 
 let statusBarGroup;
+let brush;
+let steve;
 
 function createPlayablePart() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -713,6 +849,14 @@ function createPlayablePart() {
     game.physics.arcade.enable(blockLog);
     blockLog.body.immovable = true;
 
+    brush = game.add.sprite(1741, 130, 'brush_key');
+    brush.anchor.setTo(0.5);
+    brush.scale.setTo(0.6);
+
+    steve = game.add.sprite(1698, 130, 'steve_key');
+    steve.anchor.setTo(0.5);
+    steve.scale.setTo(1.7);
+
     startTime = new Date();
     totalTime = 2; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
@@ -733,8 +877,8 @@ function createDialogBoxPart() {
     dude.body.velocity.x = 0;
     dude2.body.velocity.y = 0;
     dude2.body.velocity.x = 0;
-    dude.animations.stop()
-    dude2.animations.stop()
+    dude.animations.stop();
+    dude2.animations.stop();
 
     console.log('dialogBox.y: ', dialogBox.y);
 
@@ -999,7 +1143,7 @@ function dialogWindow() {
     let dialogBoxTween = game.add.tween(dialogBox).to({ y: '+475' }, 2000, Phaser.Easing.Linear.None, true);
     dialogBoxTween.onComplete.add(dialogWindowText, this);
     // dialogBoxTween.onComplete.add(groupItemsInWindow, this);
-    
+
     windowFinishedTravelling = true;
     dialogBoxCreated = true;
     // setTimeout(() => {
@@ -1313,9 +1457,9 @@ function collisionHandler2(obj1, obj2) {
 }
 
 function clicksHandler() {
-    if (canClick && game.input.mousePointer.isDown && 
-        ((game.input.x >= game.width / 2 - 40 && game.input.x <= game.width / 2 + 40) && 
-        (game.input.y >= game.height / 2 - 40 && game.input.y <= game.height / 2 + 40))) {
+    if (canClick && game.input.mousePointer.isDown &&
+        ((game.input.x >= game.width / 2 - 40 && game.input.x <= game.width / 2 + 40) &&
+            (game.input.y >= game.height / 2 - 40 && game.input.y <= game.height / 2 + 40))) {
 
         clickedOnCenter = true;
     }
@@ -1324,11 +1468,11 @@ function clicksHandler() {
     // console.log(game.input.x);
     console.log('dude2 x: ', dude2.x, 'dude2 y: ', dude2.y);
 
-    if (clickedOnCenter && canClick && game.input.mousePointer.isDown && 
-        ((game.input.x >= game.width / 2 - 210 && 
-            game.input.x <=  game.width / 2 + 210) && 
-            (game.input.y >= game.height / 2 - 155 && 
-                game.input.y <=  game.height / 2 + 155))) {
+    if (clickedOnCenter && canClick && game.input.mousePointer.isDown &&
+        ((game.input.x >= game.width / 2 - 210 &&
+            game.input.x <= game.width / 2 + 210) &&
+            (game.input.y >= game.height / 2 - 155 &&
+                game.input.y <= game.height / 2 + 155))) {
 
         console.log('able to drag!'); //!! the following code doesn't execude
         draggingItem.y = game.camera.y + game.input.y;
