@@ -114,10 +114,6 @@ let menuBackground;
 
 let recycleLogo; //! left
 let recycleLogo2; //! right
-let recycleLogosYpos = -80;
-
-let recycleLogoXpos = game.width / 2 - 85;
-let recycleLogo2Xpos = recycleLogoXpos + 200;
 
 let gameHasStarted = false;
 
@@ -144,7 +140,7 @@ let helpTextStyle;
 
 let defWindowText = "Drag the item into a container.";
 
-let dragItemBinTypeArray = ['isForBlue', 'isForGreen', 'isForYellow', 'isForBlue', 'other', 'isForGreen', 'isForGreen', 'isForBlue', 'isForBlue', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow'];
+let dragItemBinTypeArray = ['isForBlue', 'isForGreen', 'isForYellow', 'isForBlue', 'other', 'isForGreen', 'isForGreen', 'isForBlue', 'other', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow', 'isForYellow'];
 let draggingItemIndex = 0;
 
 let draggingIsDone = false; //? един местещ опит е завършен
@@ -202,7 +198,14 @@ function render() {
     // }
 }
 
+let recycleLogosYpos;
+let recycleLogoXpos;
+let recycleLogo2Xpos;
+
 function create() {
+    recycleLogosYpos = game.camera.y - 80;
+    recycleLogoXpos = game.camera.x + (game.width / 2 - 85);
+    recycleLogo2Xpos = recycleLogoXpos + 200;
     welcomeScreen(); //? създаваме първоначалното меню
 }
 
@@ -252,6 +255,7 @@ let itemToClean;
 let player1Cleaned = false;
 
 function itemCleaning(itemIndexToClean) {
+    console.log('heyyy');
     if (itemIndexToClean > 15) {
         if (player1Cleaned) {
             cleaningBoxText.setText("You cleaned them all!\nNow you may recycle the items.");
@@ -259,6 +263,7 @@ function itemCleaning(itemIndexToClean) {
                 cleaningBoxGroup.kill();  //? край на почистването
                 playerMovementBlocked = false;
                 game.canvas.style.cursor = "default";
+                cursorNeedsToBeABrush = false;
             }, 3000);
             return;
         }
@@ -274,8 +279,9 @@ function itemCleaning(itemIndexToClean) {
         }, 3000);
         return;
     }
+
     if (itemIndexToClean === 4 || itemIndexToClean === 8) {
-        itemCleaning(itemIndexToClean + 1);
+        itemCleaning(itemIndexToClean + 1); //? пропусни тези два индекса
         return;
     }
 
@@ -291,6 +297,7 @@ function itemCleaning(itemIndexToClean) {
     itemToClean.inputEnabled = true;
 
     itemToClean.events.onInputDown.add(() => {
+        console.log(itemToClean);
         itemToClean.tint = tintValuesCopy.shift();
         if (tintValuesCopy.length <= 0) {
             itemToClean.kill();
@@ -311,11 +318,14 @@ function cleaningPart() {
     dude.animations.stop()
     dude2.animations.stop()
 
+    cursorNeedsToBeABrush = true;
+
     cleaningBoxGroup = game.add.group();
 
     cleaningBox = game.add.sprite(game.camera.x + game.width / 2, game.camera.y + game.height / 2, 'dialog_box');
     cleaningBox.anchor.setTo(0.5);
     cleaningBoxGroup.add(cleaningBox);
+    cleaningBox.inputEnabled = true;
 
     cleaningBoxText = game.add.text(cleaningBox.x, cleaningBox.y - 150, "Click on the item to clean it", 
     { font: "24px Bahnschrift", fill: "#FFFFFF", align: "center" })
@@ -326,9 +336,12 @@ function cleaningPart() {
         cleaningBoxText.setText("");
     }, 3000);
 
+    // cleaningBox.events.onInputDown.add(() => {
+    // }, this);
+    game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
+
     itemCleaning(0); //? като параметър даваме индекс на предмета за почистване
     
-    game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
 
     // document.getElementsByTagName().style.cursor = "pointer";
 
@@ -343,6 +356,8 @@ function cleaningPart() {
 }
 
 let dialogWindowCreated = false;
+let itemToCleanWasCreated = false;
+let cursorNeedsToBeABrush = false;
 
 function update() {
     if (recycledItemWasCreated) {
@@ -368,19 +383,28 @@ function update() {
             dude2.body.velocity.y = 0;
             dude.body.velocity.x = 0;
             dude.body.velocity.y = 0;
+            dude.animations.stop();
+            dude2.animations.stop();
             console.log('dialog created!');
         }
     }
 
-    if (brushPicked && (((dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) || 
+    if (!itemToCleanWasCreated && brushPicked && (((dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) || 
     ((dude.x >= 1529 && dude.x <= 1545) && (dude.y >= 156 && dude.y <= 179)))) {
+        console.log('time to clean!');
         cleaningPart();
-        brushPicked = false;
+        itemToCleanWasCreated = true;
+        // brushPicked = false;
     }
 
-    if (playtimeTimerEnded && (((dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) || 
+    if (cursorNeedsToBeABrush) {
+        game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
+    }
+
+    if (!itemToCleanWasCreated && !brushPicked && playtimeTimerEnded && (((dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) || 
     ((dude.x >= 1785 && dude.x <= 1800) && (dude.y >= 156 && dude.y <= 166)))) {
-        brush.kill();
+        brush.destroy();
+        console.log('wtf');
         brushPicked = true;
     }
 
@@ -479,6 +503,10 @@ function update() {
         if (gameHasFinished || dialogBoxCreated) {
             mushTimerSpawn.stop();
             currentItem.kill()
+        }
+
+        if (game.input.y <= 35) {
+            game.canvas.style.cursor = "default";
         }
 
         game.physics.arcade.collide(dude, mushroom, collisionHandler1, null, this);
@@ -856,6 +884,7 @@ let steve;
 
 function createPlayablePart() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
+    game.camera.reset();
 
     // game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
     // game.scale.pageAlignVertically = true;
@@ -921,7 +950,7 @@ function createPlayablePart() {
     steve.scale.setTo(1.7);
 
     startTime = new Date();
-    totalTime = 2; //? секундите за таймера
+    totalTime = 5; //? секундите за таймера
     timeElapsed = 0; //? изминали секунди
     createPlaytimeTimer();
 
@@ -960,9 +989,9 @@ function createDialogBoxPart() {
             binsArray[index].frame = index++;
         }
 
-        if (draggingItemIndex === 4) {
-            draggingItemIndex++;
-        }
+        // if (draggingItemIndex === 4 || draggingItemIndex === 8) {
+        //     draggingItemIndex++;
+        // }
 
         draggingItemCreate(); //? създаваме предмета
         // groupItemsInWindow();
@@ -1280,11 +1309,11 @@ function draggingItemCreate() {
 
 function createWelText() {
     welcomeTextStyle = { font: "50px Arial ", fill: "#ff0000", fontWeight: 'bold', align: 'center' }; //? стила на текста
-    welcomeText = game.add.text(game.width / 2, 100, "Welcome to\nRecycling In The Forest!", welcomeTextStyle); //? тук добавяме текст в заглавното меню
+    welcomeText = game.add.text(game.camera.x + game.width / 2, game.camera.y + 100, "Welcome to\nRecycling In The Forest!", welcomeTextStyle); //? тук добавяме текст в заглавното меню
     welcomeText.anchor.setTo(0.5);
 
     copyrightTextStyle = { font: "15px Times New Roman ", fill: "#ffffff", fontWeight: 'italic' };
-    copyrightText = game.add.text(18, 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
+    copyrightText = game.add.text(game.camera.x + 18, game.camera.y + 541, `© Genadi Fidanov, gf32716973@edu.mon.bg.`, copyrightTextStyle); //? тук добавяме текст в заглавното меню
 
     let grd = welcomeText.context.createLinearGradient(0, 0, 0, welcomeText.height);
     //?  добавяме два цвята за граница
@@ -1302,11 +1331,13 @@ function welcomeScreen() {
     gameHasFinished = false;
     gameHasStarted = false;
 
-    P1FinishedProcess = true;
-    draggingItemIndex = 15;
+    P1FinishedProcess = false;
+    draggingItemIndex = 0;
     recycledItemPosIndex = 0;
 
     gameHasCreatedEverything = false;
+    dialogBoxCreated = false;
+    dialogWindowCreated = false;
 
     playtimeTimerEnded = false;
 
@@ -1318,8 +1349,18 @@ function welcomeScreen() {
     dialogBoxCreated = false;
 
     recycledItemsFrame = 0;
+    recycledItemWasCreated = false;
 
-    menuBackground = game.add.image(0, 0, 'menu_background');
+    player1Cleaned = false;
+    playerMovementBlocked = false;
+    brushPicked = false;
+    itemToCleanWasCreated = false;
+    cursorNeedsToBeABrush = false;
+
+    bubbleAppeared = false;
+
+    console.log('menu created!');
+    menuBackground = game.add.image(game.camera.x, game.camera.y, 'menu_background');
 
     createWelText();
 
@@ -1332,10 +1373,12 @@ function welcomeScreen() {
 }
 
 function masterVolButtonOver() {
-    masterVolButton.scale.setTo(0.105)
+    masterVolButton.scale.setTo(0.105);
+    cursorNeedsToBeABrush = false;
 }
 function masterVolButtonOut() {
-    masterVolButton.scale.setTo(0.1)
+    masterVolButton.scale.setTo(0.1);
+    cursorNeedsToBeABrush = true;
 }
 
 function startButtonOver() {
@@ -1402,6 +1445,8 @@ function helpButtonEvent() {
     recycleLogo.kill();
     recycleLogo2.kill();
 
+    console.log('in help!');
+
     welcomeText.kill();
     helpTextStyle = { font: "20px Arial Narrow", fill: "#ffffff", fontWeight: 'bold', align: 'center' };
     helpText = game.add.text(game.width / 2, 220, helpTextContent, helpTextStyle);
@@ -1465,6 +1510,8 @@ function escButtonEvent() {
 
 function escButtonCleanup() {
     if (gameEnded) { //? Ако ESC бутона е натиснат след края на играта, да се изпълни следния код:
+        game.camera.reset();
+
         recycledItemCreateInterval.stop(); //? спираме създаването на падащите елементи и проверката за позиция
         recycledItemCollideInterval.stop();
 
@@ -1587,6 +1634,7 @@ function createAudio() {
 }
 
 function createWelScreenButtons() {
+
     recycleLogo = game.add.image(recycleLogoXpos, recycleLogosYpos, 'recycle_logo');
     recycleLogo.scale.setTo(0.03);
     recycleLogo.anchor.setTo(0.5);
@@ -1595,7 +1643,7 @@ function createWelScreenButtons() {
     recycleLogo2.scale.setTo(0.03);
     recycleLogo2.anchor.setTo(0.5);
 
-    startButton = game.add.button(game.width / 2, game.height / 2 - 50, 'menu_buttons_sprite_key', startButtonEvent, this); startButton.frame = 2;
+    startButton = game.add.button(game.camera.x + game.width / 2, game.camera.y + game.height / 2 - 50, 'menu_buttons_sprite_key', startButtonEvent, this); startButton.frame = 2;
     startButton.scale.setTo(0.3)
     startButton.anchor.setTo(0.5)
 
