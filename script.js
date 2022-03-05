@@ -5,20 +5,8 @@ function tableClose() {
 window.addEventListener('load', () => {
     setTimeout(() => {
         const tableElement = document.querySelector('#table');
-        const tableStyle = getComputedStyle(tableElement);
-        const tableOpacity = parseFloat(tableStyle.opacity);
 
-        startTableOpacityIncrease(tableElement, tableOpacity);
+        tableElement.style.visibility = 'visible';
+        tableElement.style.animation = "tableFadeIn 2s"
     }, 3000)
-
-    function startTableOpacityIncrease(element, opacity) {
-        const opacityInterval = setInterval(() => {
-            opacity += 0.015;
-            element.style.opacity = String(opacity);
-
-            if (opacity >= 1) {
-                clearInterval(opacityInterval)
-            }
-        }, 15);
-    }
 });
