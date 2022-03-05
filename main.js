@@ -76,7 +76,6 @@ let dude2VelY = 200;
 let mushroomX = 900; //? x е 900 за да не може да се стигне гъбката, когато не трябва
 let mushroomY = 0;
 
-let playtimeTimer;
 let mushTimerSpawn;
 let mushTimerDestroy;
 
@@ -117,7 +116,7 @@ let recycleLogo2; //! right
 
 let gameHasStarted = false;
 
-let helpTextContent = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\nIn the top right corner you can adjust the volume.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 3 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out a dialog box comes down\n and each player will have to complete a recycling process.\n\nEnjoy playing the game :) !\n\nPress ESC to go back to the welcome screen.";
+let helpTextContent = "Instructions on how to play:\n\n Controls:\n Use the arrow/WASD keys to move the players.\nIn the top right corner you can adjust the volume.\n\n Main gameplay:\n The two players need to clean the forest from the constantly spawning trash\n in the span of 1,5 minutes. Each object has its own weight\n and will be added to a player's total when collected.\n Once in a while a mushroom appears, which\n when collected will give a speed-boost. When\n the time runs out the log will no longer block the path\n and each player will be able to proceed further into the map.\n\nEnjoy playing the game :) !\n\nPress ESC to go back to the welcome screen.";
 let creditsTextContent = `Recycle items art by Clint Bellanger,\n"mushroom" sf by "dklon",\n"calm music" by "Aspecty",\n"pickup sound" by M. Baradari,\nlaundry shop guy by TafuSeler,\ncredit for "recycling music"\ngoes to www.screenhog.com.`;
 let inHelpScene = false;
 let inCreditsScene = false;
@@ -189,15 +188,6 @@ function preload() {
     game.load.audio('calm_music', './audio/calm_music.mp3');
 }
 
-function render() {
-    // if (gameHasStarted) {
-    //     game.debug.body(dude);
-    // game.debug.body(dude2);
-    //     game.debug.body(groundLayer);
-
-    // }
-}
-
 let recycleLogosYpos;
 let recycleLogoXpos;
 let recycleLogo2Xpos;
@@ -260,8 +250,9 @@ function itemCleaning(itemIndexToClean) {
             setTimeout(() => {
                 cleaningBoxGroup.kill();  //? край на почистването
                 playerMovementBlocked = false;
-                game.canvas.style.cursor = "default";
                 cursorNeedsToBeABrush = false;
+                cleaningBoxCreated = false;
+                game.camera.follow(dudeKgs > dude2Kgs ? dude : dude2);
             }, 3000);
             return;
         }
@@ -338,23 +329,23 @@ function cleaningPart() {
     itemCleaning(0); //? като параметър даваме индекс на предмета за почистване
 }
 
-
 let dialogWindowCreated = false;
 let itemToCleanWasCreated = false;
 let cursorNeedsToBeABrush = false;
 
-let dudeTimeoutToMoveCameraCreated = false;
-let dude2TimeoutToMoveCameraCreated = false;
-let dudeTimeoutToMoveCamera;
-let dude2TimeoutToMoveCamera;
+let timeoutToMoveCameraCreated = false;
+let timeoutToMoveCamera;
 
-function keepUpCameraFunction() {
-    //? камерата следи първото човече и второто исостава        
-    if (!dudeTimeoutToMoveCameraCreated && dudeKgs > dude2Kgs && (dude2.x < game.camera.x || dude2.x > game.camera.x + game.width || dude2.y < game.camera.y || dude2.y > game.camera.y + game.height)) {
-        dudeTimeoutToMoveCameraCreated = true;
+function keepUpCameraFunction(playerToKeepUpWith) {
+    //? камерата следи първото човече и второто изостава        
+    if ((!dialogWindowCreated && !cleaningBoxCreated) && !timeoutToMoveCameraCreated && (playerToKeepUpWith.x < game.camera.x || 
+        playerToKeepUpWith.x > game.camera.x + game.width || playerToKeepUpWith.y < game.camera.y || 
+        playerToKeepUpWith.y > game.camera.y + game.height)) {
+
+        timeoutToMoveCameraCreated = true;
         
-        dudeTimeoutToMoveCamera = setTimeout(() => {
-            game.camera.follow(dude2, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1);
+        timeoutToMoveCamera = setTimeout(() => {
+            game.camera.follow(playerToKeepUpWith, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1);
 
             const keepUpText = game.add.text(game.width / 2, 210, "Keep up!", { font: "74px Arial Black", fill: "#FFFFFF" });
             keepUpText.anchor.setTo(0.5);
@@ -369,54 +360,28 @@ function keepUpCameraFunction() {
             keepUpTextTween.onComplete.add(() => {
                 game.add.tween(keepUpText).to({ alpha: 0 }, 0, "Linear", true, 0);
             }, this);
-            
+
             setTimeout(() => {
-                game.camera.follow(dude, Phaser.Camera.FOLLOW_LOCKON, 1, 1);
+                //? изчакай 10 сек. и след това се върни към човечето с повече kgs
+                if (!dialogWindowCreated && !cleaningBoxCreated) {
+                    game.camera.follow(playerToKeepUpWith === dude ? dude2 : dude, Phaser.Camera.FOLLOW_LOCKON, 1, 1);
+                }
             }, 10000);
-        }, 2500);
+
+        }, 3500);
     }
 
-    //? ако второто човече е влязло в кадър, но времето до преместване на камерата още тече
-    if (dudeTimeoutToMoveCameraCreated && ((dude2.x > game.camera.x && dude2.x < game.camera.x + game.width) && (dude2.y > game.camera.y && dude2.y < game.camera.y + game.height))) {
-        clearTimeout(dudeTimeoutToMoveCamera);
-        dudeTimeoutToMoveCameraCreated = false;
-    }
+    //? ако изоставащото човече е влязло в кадър, но времето до преместване на камерата още тече
+    if ((dialogWindowCreated || cleaningBoxCreated) || timeoutToMoveCameraCreated && ((playerToKeepUpWith.x > game.camera.x && 
+        playerToKeepUpWith.x < game.camera.x + game.width) && (playerToKeepUpWith.y > game.camera.y && 
+        playerToKeepUpWith.y < game.camera.y + game.height))) {
 
-
-
-    if (!dude2TimeoutToMoveCameraCreated && dudeKgs <= dude2Kgs && (dude.x < game.camera.x || dude.x > game.camera.x + game.width || dude.y < game.camera.y || dude.y > game.camera.y + game.height)) {
-        dude2TimeoutToMoveCameraCreated = true;
-        
-        dude2TimeoutToMoveCamera = setTimeout(() => {
-            game.camera.follow(dude, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1);
-    
-            const keepUpText = game.add.text(game.width / 2, 210, "Keep up!", { font: "74px Arial Black", fill: "#FFFFFF" });
-            keepUpText.anchor.setTo(0.5);
-            keepUpText.stroke = "#080957";
-            keepUpText.strokeThickness = 16;
-            //  Apply the shadow to the Stroke and the Fill (this is the default)
-            keepUpText.setShadow(2, 2, "#333333", 2, true, true);
-            keepUpText.fixedToCamera = true;
-            
-            const keepUpTextTween = game.add.tween(keepUpText).to({ alpha: 0 }, 0, "Linear", true, 0);
-            keepUpTextTween.yoyo(true, 0);
-            keepUpTextTween.onComplete.add(() => {
-                game.add.tween(keepUpText).to({ alpha: 0 }, 0, "Linear", true, 0);
-            }, this);
-            
-            setTimeout(() => {
-                game.camera.follow(dude2, Phaser.Camera.FOLLOW_LOCKON, 1, 1);
-                // game.camera.follow(dude, Phaser.Camera.FOLLOW_LOCKON, 1, 1);
-            }, 10000);
-        }, 2500);
-    }
-    
-    //? ако второто човече е влязло в кадър, но времето до преместване на камерата още тече
-    if (dude2TimeoutToMoveCameraCreated && ((dude.x > game.camera.x && dude.x < game.camera.x + game.width) && (dude.y > game.camera.y && dude.y < game.camera.y + game.height))) {
-        clearTimeout(dude2TimeoutToMoveCamera);
-        dude2TimeoutToMoveCameraCreated = false;
+        clearTimeout(timeoutToMoveCamera);
+        timeoutToMoveCameraCreated = false;
     }
 }
+
+let cleaningBoxCreated = false;
 
 function update() {
     
@@ -434,7 +399,10 @@ function update() {
 
         if (player1Cleaned && (((dude2.x >= 133 && dude2.x <= 320) && (dude2.y >= 796 && dude2.y <= 864)) || 
         ((dude.x >= 133 && dude.x <= 320) && (dude.y >= 796 && dude.y <= 864)))) {
-            dialogWindow();
+            ((dude.x >= 133 && dude.x <= 320) && (dude.y >= 796 && dude.y <= 864)) ? game.camera.follow(dude) : game.camera.follow(dude2);
+            setTimeout(() => {
+                dialogWindow();
+            }, 500);
             dialogWindowCreated = true;
 
             playerMovementBlocked = true;
@@ -449,13 +417,13 @@ function update() {
     
     if (!itemToCleanWasCreated && brushPicked && (((dude2.x >= 1529 && dude2.x <= 1545) && (dude2.y >= 156 && dude2.y <= 179)) || 
     ((dude.x >= 1529 && dude.x <= 1545) && (dude.y >= 156 && dude.y <= 179)))) {
-        cleaningPart();
+        ((dude.x >= 1529 && dude.x <= 1545) && (dude.y >= 156 && dude.y <= 179)) ? game.camera.follow(dude) : game.camera.follow(dude2);
+        setTimeout(() => {
+            cleaningPart();
+        }, 500);
+        cleaningBoxCreated = true;
+
         itemToCleanWasCreated = true;
-        // brushPicked = false;
-    }
-    
-    if (cursorNeedsToBeABrush) {
-        game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
     }
 
     if (!itemToCleanWasCreated && !brushPicked && playtimeTimerEnded && (((dude2.x >= 1785 && dude2.x <= 1800) && (dude2.y >= 156 && dude2.y <= 166)) || 
@@ -471,12 +439,7 @@ function update() {
         bubbleAppeared = true;
     }
     
-    if (bubbleAppeared) {
-        // const bubbleTween = game.add.tween(warningBubble).to({ y: 900 }, 2000, Phaser.Easing.Bounce.Out, true);
-        // bubbleTween.onComplete.add(() => {
-            //     // game.add.tween(warningBubble).to({ y: 940 }, 1000, Phaser.Easing.Linear.None, true);
-        // }, this);
-        
+    if (bubbleAppeared) {        
         if (!bubbleTravelled && warningBubble.y >= 930) {
             warningBubble.y -= 0.2;
             
@@ -532,10 +495,6 @@ function update() {
     
     if (canClick && !draggingIsDone && dragItemCreated) { //? ако имаме разрешение да кликваме и не сме приключили местенето на отпадъци, изпълняваме функцията
         draggingAndDroppingItem();
-        // if (!groupedItemsInWindow) {
-        // groupItemsInWindow();
-        //     groupedItemsInWindow = true;
-        // }
     }
     
     if (dialogBoxCreated) {
@@ -552,19 +511,20 @@ function update() {
             createPlayablePart();
         }
         
-        // masterVolButton.y = game.camera.y
-        // masterVolButton.x = game.camera.x
-        
         if (gameHasFinished || dialogBoxCreated) {
             mushTimerSpawn.stop();
             currentItem.kill()
         }
         
-        if (game.input.y <= 35) {
+        if (game.input.y <= 35 && game.input.x > game.width - 120) { //? ако мишката е над navbar бутоните
             game.canvas.style.cursor = "pointer";
+        } else if (cursorNeedsToBeABrush) {
+            game.canvas.style.cursor = "url(images/cleaning_brush.png), auto";
+        } else {
+            game.canvas.style.cursor = "default";
         }
 
-        keepUpCameraFunction();
+        keepUpCameraFunction(dudeKgs > dude2Kgs ? dude2 : dude);
         
         game.physics.arcade.collide(dude, mushroom, collisionHandler1, null, this);
         game.physics.arcade.collide(dude2, mushroom, collisionHandler2, null, this);
@@ -585,18 +545,6 @@ function update() {
                 blockLog.destroy();
                 pathUnblocked = true;
             }, 3000);
-        }
-
-        if (game.physics.arcade.collide(dude, groundLayer) == true) {
-            dude.immovable = true;
-        } else {
-            dude.immovable = false;
-        }
-
-        if (game.physics.arcade.collide(dude2, groundLayer) == true) {
-            dude2.immovable = true;
-        } else {
-            dude2.immovable = false;
         }
 
         text.setText("Player 1's Kgs: " + dudeKgs.toFixed(3));  //? с тези два реда всеки текст вече се актуализира с резултатите на играчите
@@ -635,6 +583,7 @@ function update() {
             else {
                 dude.body.velocity.x = 0;
                 dude.body.velocity.y = 0;
+                dude.body.immovable = true;
                 dude.animations.stop();
             }
 
@@ -661,8 +610,21 @@ function update() {
             else {
                 dude2.body.velocity.x = 0;
                 dude2.body.velocity.y = 0;
+                dude.body.immovable = true;
                 dude2.animations.stop();
             }
+        }
+
+        if (game.physics.arcade.collide(dude, groundLayer)) {
+            dude.body.immovable = true;
+        } else {
+            dude.body.immovable = false;
+        }
+
+        if (game.physics.arcade.collide(dude2, groundLayer)) {
+            dude2.body.immovable = true;
+        } else {
+            dude2.body.immovable = false;
         }
     }
 }
@@ -904,8 +866,6 @@ function groupStatusBar() {
 
 const createBackground = function () {
     background = game.add.image(0, 0, 'grass');
-    // background.width = game.width;
-    // background.height = game.height;
 }
 
 function lowerMasterVolume() {
@@ -948,53 +908,16 @@ function createPlayablePart() {
     mushTimerSpawn.loop(26000, mushroomCreate, this);
     mushTimerSpawn.start();
     
-    let index = 0;
-    for (let x = 175; x <= 290; x += 50) {
-        binsArray[index] = game.add.sprite(x, 796, 'bins')
-        binsArray[index].anchor.setTo(0.5);
-        binsArray[index].scale.setTo(1.2);
-        binsArray[index].frame = index++;
-    }
-    
-    binsArray.map((bin) => {
-        game.physics.enable(bin);
-        bin.body.immovable = true;
-        bin.shadow 
-    });
-    
     mushTimerDestroy = game.time.create(false);
     mushTimerDestroy.loop(6000, mushroomsKill, this);
     
-    lowerVolButton = game.add.button(728, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
-    lowerVolButton.scale.setTo(0.15);
-    lowerVolButton.anchor.setTo(0.5);
-    
-    increaseVolButton = game.add.button(773, 14.5, 'volume_adjust_buttons', increaseMasterVolume, this); increaseVolButton.frame = 1;
-    increaseVolButton.scale.setTo(0.15);
-    increaseVolButton.anchor.setTo(0.5);
-    
-    masterVolButton = game.add.button(802, 16, 'master_volume_icon', masterVolButtonClick, this); masterVolButton.frame = 0;
-    masterVolButton.scale.setTo(0.1);
-    masterVolButton.anchor.setTo(0.5);
-    
-    masterVolButton.onInputOver.add(masterVolButtonOver, this);
-    masterVolButton.onInputOut.add(masterVolButtonOut, this);
+    createNavbarVolumeControl();
 
     blockLog = game.add.sprite(544, 540, 'block_log_key');
     game.physics.arcade.enable(blockLog);
     blockLog.body.immovable = true;
 
-    brush = game.add.sprite(1741, 130, 'brush_key');
-    brush.anchor.setTo(0.5);
-    brush.scale.setTo(0.6);
-    
-    signsInfoBoxCreate();
-
-    steve = game.add.sprite(1698, 130, 'steve_key');
-    steve.anchor.setTo(0.5);
-    steve.scale.setTo(1.7);
-
-    warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
+    createItemsOutsideBlockade();
     
     startTime = new Date();
     totalTime = 90; //? секундите за таймера
@@ -1003,7 +926,8 @@ function createPlayablePart() {
     
     createStatusBar();
     groupStatusBar();
-    playtimeTimer = game.time.events.loop(100, () => {
+
+    game.time.events.loop(100, () => {
         updatePlaytimeTimer();
     });
 
@@ -1019,6 +943,7 @@ function createDialogBoxPart() {
     dude2.body.velocity.x = 0;
     dude.animations.stop();
     dude2.animations.stop();
+
 
     if (dialogBox.y >= 792) {
         let index = 0;
@@ -1036,9 +961,6 @@ function createDialogBoxPart() {
 
 
         draggingItemCreate(); //? създаваме предмета
-        // groupItemsInWindow();
-
-        // canClick = true; //? с този boolean разрешаваме кликането върху прозореца
         dialogBoxCreated = false;
     }
 }
@@ -1101,7 +1023,6 @@ function recycledCollideFunction() {
             }
 
             recycledItem.body.collideWorldBounds = true; //? разрешаваме сблъсъка на предмета с границите на играта
-            
         }
     }
 }
@@ -1131,10 +1052,6 @@ function recycledItemsFalling() {
 
     recycledItemIntervalsCreate();
 
-    // hitFloor = new Phaser.Rectangle(0, game.camera.y + 500, game.width, 50);
-    // game.physics.arcade.enable(hitFloor);
-    // hitFloor.immovable = true;
-
     floorHitBody = game.add.sprite(0, game.camera.y + game.height, 'block');
     game.physics.enable(floorHitBody);
     floorHitBody.body.immovable = true;
@@ -1152,11 +1069,6 @@ function recycledItemsFalling() {
     recycledItemsGroup.mask = mask;
 }
 
-function render () {
-
-    game.debug.geom(hitFloor,'#0fffff');
-
-}
 function draggingAndDroppingItem() {
     if (draggingItemIndex === 0 && !calmMusicIsPlaying) {
         calmMusic.play();
@@ -1290,28 +1202,11 @@ function dialogWindow() {
 
     dialogBox = game.add.image(game.camera.x + game.width / 2, game.camera.y - 187, 'dialog_box');
     dialogBox.anchor.setTo(0.5);
-    let dialogBoxTween = game.add.tween(dialogBox).to({ y: '+475' }, 2000, Phaser.Easing.Linear.None, true);
+    const dialogBoxTween = game.add.tween(dialogBox).to({ y: '+475' }, 2000, Phaser.Easing.Linear.None, true);
     dialogBoxTween.onComplete.add(dialogWindowText, this);
-    // dialogBoxTween.onComplete.add(groupItemsInWindow, this);
-
-    // windowFinishedTravelling = true;
-    // dialogBoxCreated = true;
-    // setTimeout(() => {
-    // }, 2000);
 }
 
-let windowGroup;
 let dragItemCreated = false;
-
-function groupItemsInWindow() {
-    windowGroup = game.add.group();
-    windowGroup.add(dialogBox);
-    windowGroup.add(binsArray[0]);
-    windowGroup.add(binsArray[1]);
-    windowGroup.add(binsArray[2]);
-    windowGroup.add(dialogBoxText);
-    windowGroup.add(draggingItem);
-}
 
 function dialogWindowText() {    
     dialogBoxTextStyle = { font: "24px Tahoma ", fill: "#ffffff" }; //? стила на текста
@@ -1320,7 +1215,7 @@ function dialogWindowText() {
     dialogBoxText.align = 'center';
     dialogBoxText.alpha = 0;
     game.add.tween(dialogBoxText).to({ alpha: 1 }, 0, "Linear", true, 0);
-    canClick = true;
+    canClick = true; //? с този boolean разрешаваме кликането върху прозореца
 
     windowFinishedTravelling = true;
     dialogBoxCreated = true;
@@ -1354,8 +1249,8 @@ function createWelText() {
 }
 
 function welcomeScreen() {
-    // game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
-    // game.scale.pageAlignVertically = true;
+    //// game.scale.pageAlignHorizontally = true;  //? тук подравняваме играта в центъра на страницата
+    //// game.scale.pageAlignVertically = true;
 
     gameHasFinished = false;
     gameHasStarted = false;
@@ -1364,8 +1259,10 @@ function welcomeScreen() {
     draggingItemIndex = 0;
     recycledItemPosIndex = 0;
 
+    calmMusicIsPlaying = false;
+
     gameHasCreatedEverything = false;
-    dialogBoxCreated = false;
+
     dialogWindowCreated = false;
 
     playtimeTimerEnded = false;
@@ -1386,8 +1283,8 @@ function welcomeScreen() {
     itemToCleanWasCreated = false;
     cursorNeedsToBeABrush = false;
 
-    dudeTimeoutToMoveCameraCreated = false;
-    dude2TimeoutToMoveCameraCreated = false;
+    timeoutToMoveCameraCreated = false;
+    cleaningBoxCreated = false;
 
     bubbleAppeared = false;
 
@@ -1542,23 +1439,39 @@ function escButtonCleanup() {
         recycledItemCreateInterval.stop(); //? спираме създаването на падащите елементи и проверката за позиция
         recycledItemCollideInterval.stop();
 
-        background.kill();
+        background.destroy();
 
-        dude.kill();
-        dude2.kill();
+        dude.destroy();
+        dude2.destroy();
 
-        groundLayer.kill();
+        groundLayer.destroy();
 
-        statusbar.kill();
-        dialogBox.kill();
-        text.kill();
-        text2.kill();
-        text3.kill();
+        statusbar.destroy();
+        dialogBox.destroy();
+        text.destroy();
+        text2.destroy();
+        text3.destroy();
 
-        masterVolButton.kill();
+        masterVolButton.destroy();
 
-        congratsText.kill();
-        dialogBoxText.kill();
+        statusBarGroup.destroy();
+        warningBubble.destroy();
+        signsInfoBoxGroup.destroy();
+
+        congratsText.destroy();
+        dialogBoxText.destroy();
+
+        steve.destroy();
+        binsArray[0].destroy();
+        binsArray[1].destroy();
+        binsArray[2].destroy();
+
+        calmMusic.destroy();
+        music1.destroy();
+        dudePickupSound.destroy();
+        powup.destroy();
+        congratsMelody.destroy();
+
     } else if (inHelpScene) {  //? ако е натиснат в "help" сцената
         helpText.kill();
         dude.kill();
@@ -1597,7 +1510,7 @@ const mushAssign = function () {
     mushroom.body.immovable = true;
 }
 
-function collisionHandler1(obj1, obj2) {
+function collisionHandler1() {
     mushroomsKill()
     dude1VelX += 100;
     dude1VelY += 100;
@@ -1608,7 +1521,7 @@ function collisionHandler1(obj1, obj2) {
         dude1VelY -= 100;
     });
 }
-function collisionHandler2(obj1, obj2) {
+function collisionHandler2() {
     mushroomsKill()
     dude2VelX += 100;
     dude2VelY += 100;
@@ -1634,7 +1547,6 @@ function clicksHandler() {
             (game.input.y >= game.height / 2 - 155 &&
                 game.input.y <= game.height / 2 + 155))) {
 
-        //!! the following code doesn't execude
         draggingItem.y = game.camera.y + game.input.y;
         draggingItem.x = game.camera.x + game.input.x;
     }
@@ -1647,15 +1559,17 @@ function clicksHandler() {
 function createAudio() {
     dudePickupSound = game.add.audio('pickup_sound');   //? добавяме звуковите ефекти и музика
     dude2PickupSound = game.add.audio('pickup_sound');
+
     music1 = game.add.audio('plant_music');
     music1.play();
+
     powup = game.add.audio('powUp_sound');
     congratsMelody = game.add.audio('congrats_melody');
+
     calmMusic = game.add.audio('calm_music');
 }
 
 function createWelScreenButtons() {
-
     recycleLogo = game.add.image(recycleLogoXpos, recycleLogosYpos, 'recycle_logo');
     recycleLogo.scale.setTo(0.03);
     recycleLogo.anchor.setTo(0.5);
@@ -1684,4 +1598,49 @@ function createWelScreenButtons() {
 
     creditsButton.onInputOver.add(creditsButtonOver, this);
     creditsButton.onInputOut.add(creditsButtonOut, this);
+}
+
+function createNavbarVolumeControl() {
+    lowerVolButton = game.add.button(728, 14.5, 'volume_adjust_buttons', lowerMasterVolume, this); lowerVolButton.frame = 0;
+    lowerVolButton.scale.setTo(0.15);
+    lowerVolButton.anchor.setTo(0.5);
+    
+    increaseVolButton = game.add.button(773, 14.5, 'volume_adjust_buttons', increaseMasterVolume, this); increaseVolButton.frame = 1;
+    increaseVolButton.scale.setTo(0.15);
+    increaseVolButton.anchor.setTo(0.5);
+    
+    masterVolButton = game.add.button(802, 16, 'master_volume_icon', masterVolButtonClick, this); masterVolButton.frame = 0;
+    masterVolButton.scale.setTo(0.1);
+    masterVolButton.anchor.setTo(0.5);
+    
+    masterVolButton.onInputOver.add(masterVolButtonOver, this);
+    masterVolButton.onInputOut.add(masterVolButtonOut, this);
+}
+
+function createItemsOutsideBlockade() {
+    let index = 0;
+    for (let x = 175; x <= 290; x += 50) {
+        binsArray[index] = game.add.sprite(x, 796, 'bins')
+        binsArray[index].anchor.setTo(0.5);
+        binsArray[index].scale.setTo(1.2);
+        binsArray[index].frame = index++;
+    }
+    
+    binsArray.map((bin) => {
+        game.physics.enable(bin);
+        bin.body.immovable = true;
+        bin.shadow 
+    });
+
+    brush = game.add.sprite(1741, 130, 'brush_key');
+    brush.anchor.setTo(0.5);
+    brush.scale.setTo(0.6);
+    
+    signsInfoBoxCreate();
+
+    steve = game.add.sprite(1698, 130, 'steve_key');
+    steve.anchor.setTo(0.5);
+    steve.scale.setTo(1.7);
+
+    warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
 }
