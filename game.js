@@ -544,7 +544,7 @@ function update() {
                 game.camera.fadeIn(null, 1000)
                 blockLog.destroy();
                 pathUnblocked = true;
-            }, 3000);
+            }, 2100);
         }
 
         text.setText("Player 1's Kgs: " + dudeKgs.toFixed(3));  //? с тези два реда всеки текст вече се актуализира с резултатите на играчите
@@ -610,7 +610,7 @@ function update() {
             else {
                 dude2.body.velocity.x = 0;
                 dude2.body.velocity.y = 0;
-                dude.body.immovable = true;
+                dude2.body.immovable = true;
                 dude2.animations.stop();
             }
         }
@@ -625,6 +625,14 @@ function update() {
             dude2.body.immovable = true;
         } else {
             dude2.body.immovable = false;
+        }
+
+        if (game.physics.arcade.collide(dude, binsArray[0]) || game.physics.arcade.collide(dude, binsArray[1]) || game.physics.arcade.collide(dude, binsArray[2])) {
+            dude.immovable = false;
+        }
+        
+        if (game.physics.arcade.collide(dude2, binsArray[0]) || game.physics.arcade.collide(dude2, binsArray[1]) || game.physics.arcade.collide(dude2, binsArray[2])) {
+            dude2.immovable = false;
         }
     }
 }
@@ -1623,15 +1631,11 @@ function createItemsOutsideBlockade() {
         binsArray[index] = game.add.sprite(x, 796, 'bins')
         binsArray[index].anchor.setTo(0.5);
         binsArray[index].scale.setTo(1.2);
-        binsArray[index].frame = index++;
+        binsArray[index].frame = index;
+        game.physics.enable(binsArray[index]);
+        binsArray[index++].body.immovable = true;
     }
     
-    binsArray.map((bin) => {
-        game.physics.enable(bin);
-        bin.body.immovable = true;
-        bin.shadow 
-    });
-
     brush = game.add.sprite(1741, 130, 'brush_key');
     brush.anchor.setTo(0.5);
     brush.scale.setTo(0.6);
