@@ -1647,4 +1647,5 @@ function createItemsOutsideBlockade() {
     steve.scale.setTo(1.7);
 
     warningBubble = game.add.sprite(930, 940, 'warning_bubble_key');
+    warningBubble.alpha = 0;
 }
